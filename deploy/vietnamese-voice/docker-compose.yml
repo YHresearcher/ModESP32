@@ -1,0 +1,15 @@
+services:
+  xiaozhi-vi:
+    image: ghcr.nju.edu.cn/xinnan-tech/xiaozhi-esp32-server:server_latest
+    container_name: modesp32-xiaozhi-vi
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8000:8000"
+      - "8003:8003"
+    volumes:
+      - ./data:/opt/xiaozhi-esp32-server/data
+    environment:
+      TZ: Asia/Ho_Chi_Minh
+    # Keep inside trusted LAN; public deployment requires TLS and authentication.
