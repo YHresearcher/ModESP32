@@ -13,18 +13,60 @@
 #include <esp_lvgl_port.h>
 #include <driver/spi_common.h>
 #include <driver/gpio.h>
+#include <cstring>
 
 #define TAG "ModS3Touch"
 
 class TouchSpiDisplay : public SpiLcdDisplay {
 private:
     lv_obj_t* test_overlay_ = nullptr;
+    lv_obj_t* face_overlay_ = nullptr;
+    lv_obj_t* face_label_ = nullptr;
+    lv_obj_t* face_status_ = nullptr;
+    const char* face_expression_ = "^  ^";
     lv_obj_t* test_button_ = nullptr;
     lv_obj_t* test_label_ = nullptr;
     unsigned test_step_ = 0;
     static constexpr int kPoints[5][2] = {{6,48},{190,48},{98,132},{6,242},{190,242}};
     static constexpr const char* kNames[5] = {"Tren trai","Tren phai","Giua","Duoi trai","Duoi phai"};
 
+    static void OnFaceOpen(lv_event_t* event) {
+        auto* self=static_cast<TouchSpiDisplay*>(lv_event_get_user_data(event));
+        if(self && self->face_overlay_)lv_obj_remove_flag(self->face_overlay_, LV_OBJ_FLAG_HIDDEN);
+    }
+    static void OnFaceClose(lv_event_t* event) {
+        auto* self=static_cast<TouchSpiDisplay*>(lv_event_get_user_data(event));
+        if(self && self->face_overlay_)lv_obj_add_flag(self->face_overlay_, LV_OBJ_FLAG_HIDDEN);
+    }
+    static void OnFaceTalk(lv_event_t*) {
+        Application::GetInstance().ToggleChatState();
+    }
+    static void OnFaceTest(lv_event_t* event) {
+        auto* self=static_cast<TouchSpiDisplay*>(lv_event_get_user_data(event));
+        if(!self || !self->test_overlay_)return;
+        self->test_step_=0;
+        lv_obj_remove_flag(self->test_overlay_, LV_OBJ_FLAG_HIDDEN);
+        self->MoveTarget();
+    }
+    void SetExpressionText(const char* emotion) {
+        if(!face_label_ || !face_status_)return;
+        const char* face="^  ^";
+        const char* status="San sang";
+        if(emotion && (std::strstr(emotion,"sad") || std::strstr(emotion,"cry"))) {
+            face=";  ;";status="Buon";
+        } else if(emotion && (std::strstr(emotion,"sleep") || std::strstr(emotion,"tired"))) {
+            face="-  -";status="Nghi";
+        } else if(emotion && (std::strstr(emotion,"think") || std::strstr(emotion,"confused"))) {
+            face="o  -";status="Suy nghi";
+        } else if(emotion && (std::strstr(emotion,"happy") || std::strstr(emotion,"smile") || std::strstr(emotion,"laugh"))) {
+            face="^  ^";status="Vui ve";
+        } else if(emotion && (std::strstr(emotion,"surprise") || std::strstr(emotion,"scared"))) {
+            face="O  O";status="Bat ngo";
+        }
+        face_expression_=face;
+        lv_label_set_text(face_label_, face_expression_);
+        lv_label_set_text(face_status_,status);
+    }
     static void OnStartTest(lv_event_t* event) {
         auto* self = static_cast<TouchSpiDisplay*>(lv_event_get_user_data(event));
         if (!self || !self->test_overlay_) return;
@@ -89,7 +131,76 @@ public:
         lv_obj_center(dot);
         lv_obj_add_event_cb(test_button_, OnTarget, LV_EVENT_CLICKED, this);
         lv_obj_add_flag(test_overlay_, LV_OBJ_FLAG_HIDDEN);
+
+        // Optional experimental touch-first mascot preview. The proven XiaoZhi UI
+        // stays the default, and the BOOT button always remains a fallback.
+        lv_obj_t* face_open=lv_button_create(screen);
+        lv_obj_set_size(face_open,106,46);
+        lv_obj_align(face_open,LV_ALIGN_BOTTOM_LEFT,4,-4);
+        lv_obj_set_style_bg_color(face_open,lv_color_hex(0x176F71),0);
+        lv_obj_t* face_open_label=lv_label_create(face_open);
+        lv_label_set_text(face_open_label,"AI FACE");
+        lv_obj_center(face_open_label);
+        lv_obj_add_event_cb(face_open,OnFaceOpen,LV_EVENT_CLICKED,this);
+
+        face_overlay_=lv_obj_create(screen);
+        lv_obj_set_size(face_overlay_,240,320);
+        lv_obj_set_pos(face_overlay_,0,0);
+        lv_obj_set_style_pad_all(face_overlay_,0,0);
+        lv_obj_set_style_bg_color(face_overlay_,lv_color_hex(0x071B30),0);
+        lv_obj_set_style_bg_opa(face_overlay_,LV_OPA_COVER,0);
+        lv_obj_set_scrollbar_mode(face_overlay_,LV_SCROLLBAR_MODE_OFF);
+
+        lv_obj_t* header=lv_label_create(face_overlay_);
+        lv_obj_set_style_text_color(header,lv_color_hex(0xA9DEFF),0);
+        lv_label_set_text(header,"XiaoZhi AI  |  TOUCH");
+        lv_obj_align(header,LV_ALIGN_TOP_MID,0,13);
+
+        lv_obj_t* face=lv_obj_create(face_overlay_);
+        lv_obj_set_size(face,162,162);
+        lv_obj_align(face,LV_ALIGN_CENTER,0,-24);
+        lv_obj_set_style_bg_color(face,lv_color_hex(0x123C5B),0);
+        lv_obj_set_style_border_color(face,lv_color_hex(0x53D8F0),0);
+        lv_obj_set_style_border_width(face,3,0);
+        lv_obj_set_style_radius(face,LV_RADIUS_CIRCLE,0);
+        lv_obj_set_scrollbar_mode(face,LV_SCROLLBAR_MODE_OFF);
+
+        face_label_=lv_label_create(face);
+        lv_label_set_text(face_label_,"^  ^");
+        lv_obj_set_style_text_color(face_label_,lv_color_hex(0x69EAFF),0);
+        lv_obj_align(face_label_,LV_ALIGN_CENTER,0,-14);
+
+        lv_obj_t* mouth=lv_label_create(face);
+        lv_label_set_text(mouth,"u");
+        lv_obj_set_style_text_color(mouth,lv_color_hex(0x69EAFF),0);
+        lv_obj_align(mouth,LV_ALIGN_CENTER,0,16);
+        face_status_=lv_label_create(face_overlay_);
+        lv_label_set_text(face_status_,"San sang");
+        lv_obj_set_style_text_color(face_status_,lv_color_hex(0xE5F5FF),0);
+        lv_obj_align(face_status_,LV_ALIGN_CENTER,0,77);
+
+        const char* labels[]={"TALK","5-PT","BACK"};
+        lv_event_cb_t callbacks[]={OnFaceTalk,OnFaceTest,OnFaceClose};
+        for(int i=0;i<3;i++){
+            lv_obj_t* btn=lv_button_create(face_overlay_);
+            lv_obj_set_size(btn,70,48);
+            lv_obj_set_pos(btn,8+i*78,264);
+            lv_obj_set_style_bg_color(btn,lv_color_hex(i==0?0xC86B24:0x1C5C83),0);
+            lv_obj_t* text=lv_label_create(btn);
+            lv_label_set_text(text,labels[i]);
+            lv_obj_center(text);
+            lv_obj_add_event_cb(btn,callbacks[i],LV_EVENT_CLICKED,this);
+        }
+        lv_obj_add_flag(face_overlay_,LV_OBJ_FLAG_HIDDEN);
         lvgl_port_unlock();
+    }
+    bool SetEmotion(const char* emotion) override {
+        bool ok=SpiLcdDisplay::SetEmotion(emotion);
+        if(face_label_ && lvgl_port_lock(1000)){
+            SetExpressionText(emotion);
+            lvgl_port_unlock();
+        }
+        return ok;
     }
 };
 
