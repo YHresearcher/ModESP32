@@ -1,50 +1,37 @@
-# ModESP32 Firmware Center
+# ModESP32 Firmware Center (experimental)
 
-Static Web Serial / ESP Web Tools website for **ESP32-S3 N16R8 with ST7789V 240x320**, I2S microphone and MAX98357A audio amplifier. Initial firmware remains experimental.
+Browser-based ESP32-S3 N16R8 Firmware Center, source in `web-flasher/`. Hosted website: https://agentesp32.hlthanh1992.workers.dev
 
-## Features
+## Supported workflow
 
-1. Flash a **locally selected** GitHub Actions `merged-binary.bin` through [ESP Web Tools](https://esphome.github.io/esp-web-tools/). The browser generates a temporary manifest at runtime, with the ESP32-S3 chip family and flash offset 0. This is a **merged image**, not an application-only BIN.
-2. Open Serial Monitor at 115200 baud, observe boot logs after pressing RESET, download text logs and copy logs after basic secret redaction.
-3. Create a **draft** GitHub Issue containing a short redacted excerpt. Only the user's explicit submission in GitHub makes the issue visible. **Never automatically upload logs.**
+1. Go to [ModESP32 S3 Firmware (Web Flash)](https://github.com/YHresearcher/ModESP32/actions/workflows/mod-esp32s3-firmware.yml) and run it on main, or use its most recent **successful** build. Download the artifact `mod-esp32s3-st7789v-28-<sha>` and unzip it.
+2. On the website, select **merged-binary.bin**. Optionally select **SHA256SUMS** from the same artifact to verify the digest (strongly recommended). If a digest does not match, flashing is blocked.
+3. Confirm the actual ESP32-S3 N16R8 board type, the LCD/amp power wiring and any important configuration backups. Only then does the Flash button become enabled.
+4. Use Chrome or Edge desktop with a USB data cable; close any program using the serial port. Click **Connect & Flash Firmware** and follow ESP Web Tools instructions. ESP Web Tools detects the chip family and should reject a non-S3 device. The merged image is flashed at offset 0.
+5. Close ESP Web Tools before opening the separate Serial Monitor. Select 115200 baud; press RESET/EN to read boot logs. The monitor can label possible panic, PSRAM, display, I²S and Wi-Fi errors. These are keyword hints, **not proof of root cause**.
+6. **Download log** stores the raw log locally. **Create redacted preview** makes an editable text excerpt; inspect it carefully. Only after checking the consent box can you open a draft public GitHub Issue. The website does not submit the issue by itself.
 
-### Build firmware in GitHub Actions
+## What is validated, and what is not
 
-From `YHresearcher/ModESP32`, open **Actions → ModESP32 S3 Firmware (Web Flash) → Run workflow**.
-When the job succeeds, download artifact `mod-esp32s3-st7789v-28-<sha>` and unzip it. Choose **merged-binary.bin** in the website.
+- The web app rejects files that are not named `merged-binary.bin`, are too small/large for a 16MB image, or do not have ESP image magic 0xE9 at flash offset 0.
+- SHA-256 verifies **integrity relative to the supplied SHA256SUMS file**, but does **not independently authenticate** an artifact obtained from an untrusted source. Both files should come from the intended successful GitHub Actions run.
+- Naming, size and header checks do **not** guarantee the image matches the board, that every embedded partition is correct, or that it is safe to flash. The browser and ESP Web Tools add chip-family checking, but there is still risk with unsuitable hardware and incorrect images.
+- The device's LCD ST7789V module supply and LED backlight drive, resistive-touch controller, microphone chip and GPIO mapping have not yet been electrically verified. The backlight and touch remain intentionally disabled in this first board version.
+- Neither the static website nor GitHub Actions can read the physical ESP32 without user-initiated local USB access.
+- The site requires HTTPS and Web Serial. Flash and Serial Monitor cannot hold the same port concurrently.
 
-This dedicated workflow builds only the custom board, avoiding hundreds of unrelated upstream variants. It does **not** deploy or release untested firmware to the public automatically.
+## Privacy
 
-### Deploy to Cloudflare Pages (preferred)
+Nothing is automatically uploaded from Serial Monitor. Logs can include SSIDs, IP/MAC addresses, API tokens, device identifiers, conversation snippets and other sensitive data. Basic client-side redaction masks common patterns but is **not comprehensive**. GitHub Issues in this public repository are public, so review and edit the preview before any submission. For sensitive errors, prefer privately sharing a suitably redacted file.
 
-Connect GitHub repository `YHresearcher/ModESP32` as a Pages project:
+## CI
 
-- Production branch: `main`.
-- Framework preset: `None`.
-- Root directory: `web-flasher`.
-- Build command: leave empty (or `exit 0`).
-- Build output directory: `.` (the root directory shown above).
-- Enable HTTPS (Cloudflare's `pages.dev` domain already uses HTTPS).
+- .github/workflows/mod-esp32s3-firmware.yml: ESP-IDF 6.1 build **only** for ModESP32 S3; artifact contains merged-binary.bin and SHA256SUMS, kept for 14 days.
+- .github/workflows/web-flasher-tests.yml: tests for browser JavaScript parsing and pure diagnostics functions.
+- .github/workflows/build.yml: upstream broad board CI, now skips web-only changes to avoid expensive unrelated board builds. Manual runs still exercise the full matrix.
 
-Alternative: Vercel static site with **Root Directory** `web-flasher` and no build command.
+## Cloudflare Pages / Vercel deployment
 
-No GitHub personal access token or Cloudflare API token needs to be stored in the website.
+Deploy static folder `web-flasher` on branch `main`, framework None, output directory `.` within that root. Cloudflare Workers deployments can also serve the same files, but must be updated through your own Cloudflare deployment setup; a GitHub commit alone doesn't prove the live website has redeployed.
 
-### Flashing instructions
-
-Use a computer with **Chrome or Microsoft Edge**, connected over a data-capable USB cable. Close Arduino Serial Monitor, ESP-IDF monitor, and other apps that might hold the port. Open the HTTPS website, select the firmware artifact's merged-binary.bin, click *Connect & Flash Firmware*, select the correct device port, then follow ESP Web Tools prompts. A factory flash may affect stored settings; keep backups. The site never silently erases NVS.
-
-### Logs
-
-After flashing, exit the flash dialog / release the COM port before opening the integrated serial monitor. Select 115200 baud, press RESET on the ESP32, and watch boot logs. Click *Download log*, or *Prepare GitHub Issue* to open an editable Issue draft. Its summary may be truncated to 1800 characters because of URL limits. For a full trace, download a .txt file and attach it manually.
-
-The client applies **only basic** redaction for common keys. Logs may still contain IP addresses, MAC addresses, SSIDs, transcripts, tokens or other private data. **Review manually** before posting a public issue. Issues are public on a public repository. If private diagnostics are needed, do not submit through GitHub Issues.
-
-### Known MVP limits
-
-- Flash and console require a compatible browser and HTTPS; do not work directly from a headless server.
-- Flashing and Serial Monitor cannot use the same serial port simultaneously.
-- Touch controller, LCD backlight, pin mappings, microphone IC and power requirements are not yet hardware validated.
-- Current site accepts a local firmware binary, not a remotely published firmware download.
-- No central log storage or dashboard; user-submitted GitHub Issues are the audit record.
-- If ESP Web Tools does not accept a locally generated blob URL for the firmware in a particular browser, use [ESP Web Tools official documentation](https://esphome.github.io/esp-web-tools/) to troubleshoot and consider a hosted, immutable manifest/firmware artifact in a future iteration.
+ESP Web Tools documentation: https://esphome.github.io/esp-web-tools/
