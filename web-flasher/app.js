@@ -5,6 +5,7 @@ const MAX_LOG = 300000;
 let firmwareUrl = null, manifestUrl = null, selectedFile = null, validated = false;
 let port = null, reader = null, reading = false, serialText = "";
 let selectionSerial = 0;
+
 function message(text) { $("reportStatus").textContent = text; }
 function append(chunk) {
   serialText = (serialText + chunk).slice(-MAX_LOG);
@@ -25,55 +26,127 @@ function updateFlashAvailability() {
   const ready = validated && $("confirmBoard").checked && $("confirmHardware").checked && "serial" in navigator && window.isSecureContext;
   $("flashButton").disabled = !ready;
   $("flashHelp").textContent = ready
-    ? "Sẵn sàng mở ESP Web Tools. Kiểm tra lại cổng USB trước khi tiến hành."
-    : "Cần chọn file .bin hợp lệ và xác nhận cả hai ô. HTTPS + Web Serial là bắt buộc.";
+    ? "Firmware đã xác minh. Sẵn sàng mở ESP Web Tools; hãy đóng Serial Monitor trước khi Flash."
+    : "Cần firmware đã xác minh, hai ô xác nhận phần cứng, HTTPS và Web Serial để bật Flash.";
+}
+function hexDigest(buffer) {
+  return Array.from(new Uint8Array(buffer), n => n.toString(16).padStart(2,"0")).join("");
+}
+async function digestSha(bytes) { return hexDigest(await crypto.subtle.digest("SHA-256", bytes)); }
+function installLocalManifest(binary, request, label, sha) {
+  if (request !== selectionSerial) return;
+  firmwareUrl = URL.createObjectURL(new Blob([binary], {type:"application/octet-stream"}));
+  const manifest = {
+    name: "ModESP32 ESP32-S3 DIY",
+    version: label,
+    new_install_prompt_erase: false,
+    builds: [{chipFamily:"ESP32-S3",improv:false,parts:[{path:firmwareUrl,offset:0}]}]
+  };
+  manifestUrl = URL.createObjectURL(new Blob([JSON.stringify(manifest)],{type:"application/json"}));
+  $("installer").manifest = manifestUrl;
+  validated = true;
+  $("firmwareHash").textContent = "SHA-256: " + sha;
+  updateFlashAvailability();
 }
 $("compat").textContent = "serial" in navigator && window.isSecureContext
   ? "✓ Web Serial sẵn sàng trên HTTPS. Hãy đóng các ứng dụng đang giữ cổng USB."
   : "⚠ Trình duyệt không có Web Serial hoặc không chạy trên HTTPS; dùng Chrome/Edge desktop.";
 for (const id of ["confirmBoard","confirmHardware"]) $(id).addEventListener("change", updateFlashAvailability);
-for (const id of ["firmware","checksum"]) $(id).addEventListener("change", validateSelectedFile);
-async function validateSelectedFile() {
+
+function setSource(mode) {
+  ++selectionSerial;
+  resetManifest();
+  const manual = mode === "manual";
+  $("manualFirmware").hidden = !manual;
+  $("autoFirmwareStatus").hidden = manual;
+  $("refreshFirmware").disabled = manual;
+  $("fileStatus").textContent = manual ? "Chọn merged-binary.bin từ máy" : "Đang kiểm tra bản Development mới nhất…";
+  $("firmwareHash").textContent = "";
+  if (!manual) void loadAutoFirmware();
+}
+$("firmwareSource").addEventListener("change", e => setSource(e.target.value));
+$("refreshFirmware").addEventListener("click", () => {
+  if ($("firmwareSource").value !== "auto") return;
+  ++selectionSerial;
+  resetManifest();
+  void loadAutoFirmware();
+});
+for(const id of ["firmware","checksum"]) $(id).addEventListener("change", () => {
+  if ($("firmwareSource").value === "manual") void validateSelectedFile();
+});
+
+async function loadAutoFirmware() {
   const request = ++selectionSerial;
   resetManifest();
-  selectedFile = $("firmware").files[0] ?? null;
-  $("firmwareHash").textContent = "";
-  if (!selectedFile) { $("fileStatus").textContent = "Chưa chọn firmware"; return; }
-  $("fileStatus").textContent = "Đang xác minh file firmware...";
+  $("autoFirmwareStatus").textContent = "Đang đọc firmware Development từ GitHub…";
+  $("fileStatus").textContent = "Đang xác minh bản Development…";
   try {
-    const header = new Uint8Array(await selectedFile.slice(0, 32).arrayBuffer());
-    const issues = validateMergedImage(header, selectedFile.name, selectedFile.size);
-    if (issues.length) throw Error(issues.join(" "));
-    const full = await selectedFile.arrayBuffer();
-    const sha = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", full)), n => n.toString(16).padStart(2,"0")).join("");
+    const response = await fetch("/api/firmware/latest",{cache:"no-store"});
+    if (!response.ok) throw Error("API firmware HTTP "+response.status);
+    const meta = await response.json();
     if (request !== selectionSerial) return;
-    const checksum = $("checksum").files[0];
-    if (checksum) {
-      const expected = parseChecksum(await checksum.text());
-      if (!expected) throw Error("SHA256SUMS không có digest hợp lệ cho merged-binary.bin.");
-      if (expected !== sha) throw Error("SHA-256 KHÔNG khớp! Không được flash firmware này.");
+    if (!meta.available) throw Error("Chưa có bản Development được xuất bản.");
+    if (meta.channel !== "development" || meta.tested !== false ||
+        meta.board !== "mod-esp32s3-st7789v-28" || meta.chipFamily !== "ESP32-S3" ||
+        !/^mod-esp32s3-dev-[0-9a-f]{12}$/.test(meta.tag) ||
+        !/^[0-9a-f]{64}$/.test(meta.sha256) ||
+        !Number.isSafeInteger(meta.size) || meta.size < 1048576 || meta.size > 16777216 ||
+        meta.firmwareUrl !== "/api/firmware/binary?tag="+encodeURIComponent(meta.tag)) {
+      throw Error("Metadata Development không hợp lệ; không flash.");
     }
+    $("autoFirmwareStatus").textContent = "Đã tìm thấy "+meta.tag+" · "+(meta.size/1048576).toFixed(2)+" MiB. Đang tải và xác minh SHA-256…";
+    const result = await fetch(meta.firmwareUrl,{cache:"no-store"});
+    if (!result.ok) throw Error("Tải firmware thất bại: HTTP "+result.status);
+    if (result.redirected && new URL(result.url).origin !== location.origin) throw Error("Firmware bị chuyển tới host khác ngoài Cloudflare.");
+    const binary = await result.arrayBuffer();
     if (request !== selectionSerial) return;
-    firmwareUrl = URL.createObjectURL(selectedFile);
-    const manifest = {
-      name: "ModESP32 ESP32-S3 DIY",
-      version: "experimental",
-      new_install_prompt_erase: false,
-      builds: [{chipFamily: "ESP32-S3", improv: false, parts: [{path: firmwareUrl, offset: 0}]}]
-    };
-    manifestUrl = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:"application/json"}));
-    // ESP Web Tools documents assigning a Blob URL directly to the manifest property.
-    $("installer").manifest = manifestUrl;
-    validated = true;
-    $("fileStatus").textContent = selectedFile.name + " · " + (selectedFile.size / 1048576).toFixed(2) + " MiB · " + (checksum ? "SHA256 verified" : "SHA256 chưa đối chiếu, chỉ kiểm tra cấu trúc");
-    $("firmwareHash").textContent = "SHA-256: " + sha;
-    updateFlashAvailability();
-  } catch (e) {
+    const issues = validateMergedImage(new Uint8Array(binary.slice(0,32)),"merged-binary.bin",binary.byteLength);
+    if(issues.length) throw Error(issues.join(" "));
+    if (binary.byteLength !== meta.size) throw Error("Kích thước firmware không khớp metadata.");
+    const sha = await digestSha(binary);
     if (request !== selectionSerial) return;
+    if (sha !== meta.sha256) throw Error("SHA-256 firmware không khớp release; đã chặn Flash.");
+    installLocalManifest(binary,request,meta.tag,sha);
+    $("autoFirmwareStatus").textContent = "✓ Development "+meta.tag+" · SHA-256 khớp · Chưa kiểm thử trên phần cứng thật.";
+    $("fileStatus").textContent = "Firmware Development đã sẵn sàng. Không cần tải ZIP thủ công.";
+  } catch(e) {
+    if(request !== selectionSerial)return;
     resetManifest();
-    $("fileStatus").textContent = "Không thể flash: " + (e?.message || String(e));
+    $("autoFirmwareStatus").textContent = "Không lấy được firmware tự động: "+(e?.message||String(e));
+    $("fileStatus").textContent = "Bạn có thể chuyển sang Thủ công để dùng artifact GitHub Actions.";
   }
 }
+async function validateSelectedFile() {
+  const request=++selectionSerial;
+  resetManifest();
+  selectedFile=$("firmware").files[0] ?? null;
+  $("firmwareHash").textContent="";
+  if(!selectedFile){$("fileStatus").textContent="Chưa chọn firmware";return;}
+  $("fileStatus").textContent="Đang xác minh file firmware...";
+  try {
+    const header=new Uint8Array(await selectedFile.slice(0,32).arrayBuffer());
+    const issues=validateMergedImage(header,selectedFile.name,selectedFile.size);
+    if(issues.length)throw Error(issues.join(" "));
+    const binary=await selectedFile.arrayBuffer();
+    const sha=await digestSha(binary);
+    if(request!==selectionSerial)return;
+    const checksum=$("checksum").files[0];
+    if(checksum){
+      const expected=parseChecksum(await checksum.text());
+      if(!expected)throw Error("SHA256SUMS không có digest hợp lệ.");
+      if(expected!==sha)throw Error("SHA-256 KHÔNG khớp; đã chặn Flash.");
+    }
+    if(request!==selectionSerial)return;
+    installLocalManifest(binary,request,"manual-development",sha);
+    $("fileStatus").textContent=selectedFile.name+" · "+(selectedFile.size/1048576).toFixed(2)+" MiB · "+(checksum?"SHA-256 verified":"chưa đối chiếu với SHA256SUMS");
+  }catch(e){
+    if(request!==selectionSerial)return;
+    resetManifest();
+    $("fileStatus").textContent="Không thể flash: "+(e?.message||String(e));
+  }
+}
+void loadAutoFirmware();
+
 $("connect").addEventListener("click", async () => {
   if (!("serial" in navigator) || !window.isSecureContext) return message("Cần Web Serial và HTTPS.");
   if (port) return;
