@@ -1,4 +1,4 @@
-name: ModESP32 S3 Touch Diagnostic (Experimental)
+name: ModESP32 Chibi AI v1.0 RC (ST7789V + Touch)
 
 on:
   workflow_dispatch:
@@ -94,8 +94,8 @@ jobs:
           gh release create "$TAG" merged-binary.bin SHA256SUMS \
             --repo "$GH_REPO" \
             --target "$SOURCE_SHA" \
-            --title "ModESP32 ESP32-S3 Development ${SOURCE_SHA:0:12}" \
-            --notes "Experimental ESP32-S3 N16R8 / ST7789V + XPT2046 Touch Diagnostic build. Not hardware-validated. Source: $SOURCE_SHA. Do not treat this as a stable release." \
+            --title "ModESP32 Chibi AI v1.0 RC — ${SOURCE_SHA:0:12}" \
+            --notes "Chibi AI v1.0 Release Candidate: ST7789V 240x320 + XPT2046 touch + LVGL face, TALK/VOL/SET. Development build; UI and audio have NOT been validated on hardware. Source: $SOURCE_SHA. Do not treat as a stable release." \
             --prerelease --latest=false
 
       - name: Publish Development manifest for the Cloudflare Worker
