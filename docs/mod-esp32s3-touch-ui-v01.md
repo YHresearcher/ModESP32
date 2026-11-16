@@ -41,3 +41,8 @@ The existing ST7789V LCD pins stay unchanged; the **separate experimental firmwa
 
 ## Future hardware-validation gate
 The XPT2046 controller compatibility, IRQ behavior, rotated display coordinates, bounce/pressure noise and backlight electrical safety require testing on the physical device. CI green only proves build and software checks, not those hardware behaviors.
+
+## Optional touch-first mascot UI (experimental firmware only)
+On the normal XiaoZhi screen in the experimental firmware, tap the 106×46 px **AI FACE** preview button to open an alternative dark navy / cyan face UI. It has three 70×48 px controls: **TALK** (toggle conversation), **5-PT** (five-point target test), and **BACK** (close preview and return to XiaoZhi). The face updates when the existing XiaoZhi `SetEmotion()` state changes. ASCII-style expressions are intentionally lightweight for 240×320 LVGL and do not require streaming 3D assets.
+
+This is a **preview skin**, not a replacement of the working UI. It requires touch to work; the hardware BOOT button still functions independently. Automated tests and compiling do not demonstrate that all event-to-emotion transitions work on the user's module. Screen states such as Wi-Fi pairing and audio failure are still handled by the original XiaoZhi UI until hardware verification.
