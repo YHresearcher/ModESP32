@@ -7,9 +7,15 @@ on:
     branches:
       - main
       - ci/* # for ci test
+    paths-ignore:
+      - "web-flasher/**"
+      - ".github/workflows/web-flasher-tests.yml"
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - "web-flasher/**"
+      - ".github/workflows/web-flasher-tests.yml"
 
 permissions:
   contents: read
