@@ -53,6 +53,7 @@ private:
         lv_obj_set_style_border_width(obj,0,0);
         lv_obj_set_style_pad_all(obj,0,0);
         lv_obj_remove_flag(obj,LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_remove_flag(obj,LV_OBJ_FLAG_CLICKABLE); // Decorative shapes never intercept touches.
         lv_obj_set_scrollbar_mode(obj,LV_SCROLLBAR_MODE_OFF);
         return obj;
     }
@@ -212,6 +213,7 @@ public:
         // Small launcher; original UI remains available with BACK.
         Button(screen,"CHIBI",9,267,96,46,0x156A88,OpenFace,this);
         face_overlay_=Panel(screen,0,0,240,320,0x071B30,0);
+        lv_obj_add_flag(face_overlay_,LV_OBJ_FLAG_CLICKABLE);
         Label(face_overlay_,"XiaoZhi AI   CHIBI",14,13,0xC7EBFF);
         Button(face_overlay_,"X",187,2,47,43,0x24506C,CloseFace,this);
 
@@ -240,6 +242,7 @@ public:
         Button(face_overlay_,"SET",161,266,72,48,0x205477,OpenSettings,this);
 
         volume_overlay_=Panel(screen,0,0,240,320,0x081E33,0);
+        lv_obj_add_flag(volume_overlay_,LV_OBJ_FLAG_CLICKABLE);
         Label(volume_overlay_,"AM LUONG",61,30,0xE5F5FF);
         volume_label_=Label(volume_overlay_,"60%",94,131,0x69E6FF);
         Button(volume_overlay_,"-",22,198,88,51,0x275975,VolumeMinus,this);
@@ -248,6 +251,7 @@ public:
         lv_obj_add_flag(volume_overlay_,LV_OBJ_FLAG_HIDDEN);
 
         settings_overlay_=Panel(screen,0,0,240,320,0x081E33,0);
+        lv_obj_add_flag(settings_overlay_,LV_OBJ_FLAG_CLICKABLE);
         Label(settings_overlay_,"SETTINGS",66,25,0xE8F6FF);
         Label(settings_overlay_,"Voice: XiaoZhi server",17,91,0xB6D6E9);
         Label(settings_overlay_,"Ngon ngu: server TTS",17,124,0xB6D6E9);
