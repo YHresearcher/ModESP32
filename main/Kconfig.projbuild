@@ -403,6 +403,9 @@ choice BOARD_TYPE
     config BOARD_TYPE_MIXGO_NOVA
         bool "MixGo Nova (元控·青春)"
         depends on IDF_TARGET_ESP32S3
+    config BOARD_TYPE_MOD_ESP32S3_ILI9341_28
+        bool "ModESP32 DIY ESP32-S3 N16R8 ILI9341 2.8 LCD"
+        depends on IDF_TARGET_ESP32S3
     config BOARD_TYPE_MOD_ESP32S3_ST7789V_28
         bool "ModESP32 DIY ESP32-S3 N16R8 ST7789V 2.8 LCD"
         depends on IDF_TARGET_ESP32S3
