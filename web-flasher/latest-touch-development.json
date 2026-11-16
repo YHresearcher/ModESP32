@@ -1,0 +1,12 @@
+{
+  "channel": "development",
+  "tested": false,
+  "board": "mod-esp32s3-st7789v-touch-28",
+  "chipFamily": "ESP32-S3",
+  "tag": "mod-esp32s3-touch-dev-36ec99b3a4f6",
+  "sourceSha": "36ec99b3a4f6e157fa666904d6b4944288bdee30",
+  "publishedAt": "2026-11-16T16:03:56Z",
+  "size": 9967589,
+  "sha256": "2b54da0dd4505ffc1ad8a2a9b05c31dfe87b5b79baeaf3fe3ca3b3181f93523b",
+  "releaseUrl": "https://github.com/YHresearcher/ModESP32/releases/tag/mod-esp32s3-touch-dev-36ec99b3a4f6"
+}
