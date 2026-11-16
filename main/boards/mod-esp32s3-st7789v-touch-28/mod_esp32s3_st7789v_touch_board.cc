@@ -46,6 +46,7 @@ private:
         if(!self || !self->test_overlay_)return;
         self->test_step_=0;
         lv_obj_remove_flag(self->test_overlay_, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_move_foreground(self->test_overlay_); // Must cover mascot overlay and its three buttons.
         self->MoveTarget();
         ESP_LOGI("Touch5Point", "TOUCH_5PT_START from mascot: tap 5 markers, all-screen capture");
     }
@@ -73,6 +74,7 @@ private:
         if (!self || !self->test_overlay_) return;
         self->test_step_ = 0;
         lv_obj_remove_flag(self->test_overlay_, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_move_foreground(self->test_overlay_);
         self->MoveTarget();
         ESP_LOGI("Touch5Point", "TOUCH_5PT_START: all-screen capture, no target hit-test required; calibration NOT saved");
     }
