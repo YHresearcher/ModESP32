@@ -3,10 +3,10 @@
   "tested": false,
   "board": "mod-esp32s3-st7789v-28",
   "chipFamily": "ESP32-S3",
-  "tag": "mod-esp32s3-dev-857e3c42258c",
-  "sourceSha": "857e3c42258cfe8a52525861eb5a7ffdf431f6bf",
-  "publishedAt": "2026-11-16T09:52:01Z",
+  "tag": "mod-esp32s3-dev-fee7c0183e6b",
+  "sourceSha": "fee7c0183e6b2be4dc157cb4ffb6ef4ec071196c",
+  "publishedAt": "2026-11-16T14:09:24.628947+00:00",
   "size": 9967589,
-  "sha256": "210abf2363e1716c8e250e826fbd3b7edd8f6fe1bb7f363e022c7326f676f1b0",
-  "releaseUrl": "https://github.com/YHresearcher/ModESP32/releases/tag/mod-esp32s3-dev-857e3c42258c"
+  "sha256": "58fd1981dfe307fd11070f1d5794904b591e5b729dd14b457e7bd00511de409b",
+  "releaseUrl": "https://github.com/YHresearcher/ModESP32/releases/tag/mod-esp32s3-dev-fee7c0183e6b"
 }
