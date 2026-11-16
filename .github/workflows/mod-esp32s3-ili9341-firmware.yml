@@ -1,0 +1,120 @@
+name: ModESP32 S3 ILI9341 Firmware (Web Flash)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "main/boards/mod-esp32s3-ili9341-28/**"
+      - "main/audio/**"
+      - "main/display/**"
+      - "main/CMakeLists.txt"
+      - "main/Kconfig.projbuild"
+      - "scripts/build.py"
+      - "sdkconfig.defaults*"
+      - ".github/workflows/mod-esp32s3-ili9341-firmware.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mod-esp32s3-ili9341-firmware-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    container:
+      image: espressif/idf:release-v6.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build custom ESP32-S3 board
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$IDF_PATH/export.sh"
+          idf.py --version
+          python3 scripts/build.py mod-esp32s3-ili9341-28 --name mod-esp32s3-ili9341-28
+
+      - name: Verify merged firmware
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/merged-binary.bin
+          sha256sum build/merged-binary.bin > build/SHA256SUMS
+          ls -lh build/merged-binary.bin
+
+      - name: Upload browser-flashable firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: mod-esp32s3-ili9341-28-${{ github.sha }}
+          path: |
+            build/merged-binary.bin
+            build/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
+
+  publish-development:
+    name: Publish immutable Development firmware
+    needs: build
+    if: ${{ github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified firmware artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mod-esp32s3-ili9341-28-${{ github.sha }}
+          path: firmware
+
+      - name: Validate package and publish prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cd firmware
+          test -s merged-binary.bin
+          # The build job writes "build/merged-binary.bin"; download-artifact
+          # restores files directly under firmware/. Normalize before checking.
+          sed -i 's#build/merged-binary.bin#merged-binary.bin#g' SHA256SUMS
+          sha256sum --check SHA256SUMS
+          # Immutable tag per commit; never overwrite a prior test firmware.
+          TAG="mod-esp32s3-ili9341-dev-${SOURCE_SHA:0:12}"
+          if gh release view "$TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            echo "Release $TAG already exists. Not overwriting."
+            exit 0
+          fi
+          gh release create "$TAG" merged-binary.bin SHA256SUMS \
+            --repo "$GH_REPO" \
+            --target "$SOURCE_SHA" \
+            --title "ModESP32 ESP32-S3 Development ${SOURCE_SHA:0:12}" \
+            --notes "Experimental ESP32-S3 N16R8 / ILI9341 build. Not hardware-validated. Source: $SOURCE_SHA. Do not treat this as a stable release." \
+            --prerelease --latest=false
+
+      - name: Publish Development manifest for the Cloudflare Worker
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cd firmware
+          test -s merged-binary.bin
+          sha256sum --check SHA256SUMS
+          export IMAGE_SHA256="$(sha256sum merged-binary.bin | cut -d' ' -f1)"
+          export IMAGE_SIZE="$(stat -c %s merged-binary.bin)"
+          export RELEASE_TAG="mod-esp32s3-ili9341-dev-${SOURCE_SHA:0:12}"
+          python3 -c 'import json,os,datetime; print(json.dumps({"channel":"development","tested":False,"board":"mod-esp32s3-ili9341-28","chipFamily":"ESP32-S3","tag":os.environ["RELEASE_TAG"],"sourceSha":os.environ["SOURCE_SHA"],"publishedAt":datetime.datetime.now(datetime.timezone.utc).isoformat(),"size":int(os.environ["IMAGE_SIZE"]),"sha256":os.environ["IMAGE_SHA256"],"releaseUrl":"https://github.com/"+os.environ["GH_REPO"]+"/releases/tag/"+os.environ["RELEASE_TAG"]},indent=2))' > latest-ili9341.json
+          CURRENT_SHA="$(gh api "repos/$GH_REPO/contents/web-flasher/latest-ili9341.json" --jq .sha)"
+          gh api -X PUT "repos/$GH_REPO/contents/web-flasher/latest-ili9341.json" \
+            -f message="chore(firmware): update latest Development manifest to ${RELEASE_TAG}" \
+            -f content="$(base64 -w0 latest-ili9341.json)" \
+            -f sha="$CURRENT_SHA" > /dev/null
