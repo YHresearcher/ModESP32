@@ -37,7 +37,7 @@ jobs:
           set -euo pipefail
           source "$IDF_PATH/export.sh"
           idf.py --version
-          python3 scripts/build.py mod-esp32s3-st7789v-touch-28 --name mod-esp32s3-st7789v-touch-28
+          python3 scripts/build.py mod-esp32s3-st7789v-touch-28 --name mod-esp32s3-st7789v-touch-28 --language vi-VN --wake-word hiesp
 
       - name: Verify merged firmware
         shell: bash
@@ -95,7 +95,7 @@ jobs:
             --repo "$GH_REPO" \
             --target "$SOURCE_SHA" \
             --title "ModESP32 Chibi AI v1.0 RC — ${SOURCE_SHA:0:12}" \
-            --notes "Chibi AI v1.0 Release Candidate: ST7789V 240x320 + XPT2046 touch + LVGL face, TALK/VOL/SET. Development build; UI and audio have NOT been validated on hardware. Source: $SOURCE_SHA. Do not treat as a stable release." \
+            --notes "Face-only UI candidate: ST7789V + XPT2046, locale vi-VN, ESP-SR WakeNet 'Hi ESP' test phrase (NOT Hey Chibi). Requires hardware microphone and display validation. Does not include a confirmed custom Chibi sprite nor cloud Vietnamese TTS. Source: $SOURCE_SHA. Experimental." \
             --prerelease --latest=false
 
       - name: Publish Development manifest for the Cloudflare Worker
