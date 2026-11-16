@@ -1,0 +1,10 @@
+{
+  "type": "mod-esp32s3-ili9341-28",
+  "target": "esp32s3",
+  "builds": [
+    {
+      "name": "mod-esp32s3-ili9341-28",
+      "sdkconfig_append": []
+    }
+  ]
+}
