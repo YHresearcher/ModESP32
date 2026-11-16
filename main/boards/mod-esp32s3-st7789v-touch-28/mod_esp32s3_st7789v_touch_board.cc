@@ -16,11 +16,17 @@
 
 #define TAG "ModS3Touch"
 
+class TouchSpiDisplay : public SpiLcdDisplay {
+public:
+    using SpiLcdDisplay::SpiLcdDisplay;
+    lv_display_t* GetLvglHandle() const { return display_; }
+};
+
 // Experimental firmware: keep the original, proven ST7789V target unchanged.
 class ModEsp32S3TouchBoard : public WifiBoard {
 private:
     Button boot_button_;
-    LcdDisplay* display_ = nullptr;
+    TouchSpiDisplay* display_ = nullptr;
     esp_lcd_panel_io_handle_t touch_io_ = nullptr;
     esp_lcd_touch_handle_t touch_ = nullptr;
     lv_indev_t* indev_ = nullptr;
@@ -68,7 +74,7 @@ private:
         ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel, DISPLAY_SWAP_XY));
         ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y));
         ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel, true));
-        display_ = new SpiLcdDisplay(lcd_io, panel, DISPLAY_WIDTH, DISPLAY_HEIGHT,
+        display_ = new TouchSpiDisplay(lcd_io, panel, DISPLAY_WIDTH, DISPLAY_HEIGHT,
             DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y,
             DISPLAY_SWAP_XY);
         ESP_LOGI(TAG, "ST7789V display initialized; starting experimental XPT2046 touch");
@@ -101,7 +107,7 @@ private:
             return;
         }
         const lvgl_port_touch_cfg_t lv_touch_cfg = {
-            .disp = display_->GetLvglDisplay(),
+            .disp = display_->GetLvglHandle(),
             .handle = touch_,
         };
         indev_ = lvgl_port_add_touch(&lv_touch_cfg);
