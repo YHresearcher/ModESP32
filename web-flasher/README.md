@@ -66,3 +66,5 @@ In Manual mode, get `merged-binary.bin` and `SHA256SUMS` from the **same success
 - `.github/workflows/mod-esp32s3-firmware.yml`: build and publish immutable Development release on `main`.
 - `.github/workflows/web-flasher-tests.yml`: JavaScript and Worker API unit tests.
 - `.github/workflows/build.yml`: broad upstream board CI; skips web-only commits.
+
+<!-- Cloudflare Workers Builds: trigger a fresh main-branch deployment after configuring root directory web-flasher. -->
