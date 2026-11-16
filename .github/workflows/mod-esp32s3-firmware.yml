@@ -81,6 +81,9 @@ jobs:
           set -euo pipefail
           cd firmware
           test -s merged-binary.bin
+          # The build job writes "build/merged-binary.bin"; download-artifact
+          # restores files directly under firmware/. Normalize before checking.
+          sed -i 's#build/merged-binary.bin#merged-binary.bin#g' SHA256SUMS
           sha256sum --check SHA256SUMS
           # Immutable tag per commit; never overwrite a prior test firmware.
           TAG="mod-esp32s3-dev-${SOURCE_SHA:0:12}"
