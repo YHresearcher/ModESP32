@@ -1,0 +1,12 @@
+{
+  "channel": "development",
+  "tested": false,
+  "board": "mod-esp32s3-ili9341-28",
+  "chipFamily": "ESP32-S3",
+  "tag": "mod-esp32s3-ili9341-dev-5b26729d62eb",
+  "sourceSha": "5b26729d62eb17c72f30b07da6ee96611f08d088",
+  "publishedAt": "2026-11-16T14:31:57.335317+00:00",
+  "size": 9967589,
+  "sha256": "2568286a44a8f07048a48b8d7f12fb46067f3854d1e27d87a6135981461cd246",
+  "releaseUrl": "https://github.com/YHresearcher/ModESP32/releases/tag/mod-esp32s3-ili9341-dev-5b26729d62eb"
+}
