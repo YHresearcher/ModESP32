@@ -165,9 +165,9 @@ private:
         esp_lcd_touch_config_t touch_cfg = {};
         touch_cfg.x_max = DISPLAY_WIDTH;
         touch_cfg.y_max = DISPLAY_HEIGHT;
-        touch_cfg.rst_gpio_num = -1;
+        touch_cfg.rst_gpio_num = GPIO_NUM_NC;
         // IRQ is polled/logged manually; polling driver avoids false interrupts on unverified boards.
-        touch_cfg.int_gpio_num = -1;
+        touch_cfg.int_gpio_num = GPIO_NUM_NC;
         touch_cfg.flags.swap_xy = 0;
         touch_cfg.flags.mirror_x = 0;
         touch_cfg.flags.mirror_y = 0;
