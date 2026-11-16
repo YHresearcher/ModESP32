@@ -8,3 +8,5 @@ textarea:focus-visible,button:focus-visible,input:focus-visible,select:focus-vis
 #firmwareHash{overflow-wrap:anywhere}
 #flashButton:disabled,#issue:disabled{opacity:.48;cursor:not-allowed}
 #diagnostics{white-space:pre-wrap}
+
+.auto-firmware{padding:12px 14px;background:#0d1b2c;border:1px solid #36506e;border-radius:12px;margin:12px 0 18px}.auto-firmware label{margin:0 0 8px}.auto-firmware select{margin-bottom:12px}.auto-firmware .status{margin:12px 0}.auto-firmware .small{margin-bottom:0}#manualFirmware[hidden],#autoFirmwareStatus[hidden]{display:none}#refreshFirmware:disabled{opacity:.45}
