@@ -66,7 +66,7 @@ async function closeSerial() {
   $("connect").disabled = false; $("disconnect").disabled = true;
   $("serialState").textContent = "Đã ngắt";
 }
-$("disconnect").addEventListener("click", () => { reading = false; reader?.cancel().catch(()=>{}); });
+$("disconnect").addEventListener("click", () => { reading = false; if (reader) reader.cancel().catch(()=>{}); });
 $("clear").addEventListener("click", () => { serialText=""; $("log").textContent="[ModESP32] Đã xóa log.\n"; });
 function clean(s) {
   return s
