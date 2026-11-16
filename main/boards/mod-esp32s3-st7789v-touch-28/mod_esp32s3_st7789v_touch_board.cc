@@ -49,8 +49,8 @@ private:
                 lv_obj_move_foreground(face_background_);
                 // Keep the original emotion image/label visible above the
                 // face-only background; no fake LVGL robot assembled from boxes.
-                if (emoji_label_) lv_obj_move_foreground(emoji_label_);
-                if (emoji_image_) lv_obj_move_foreground(emoji_image_);
+                if (emoji_label_) { lv_obj_align(emoji_label_, LV_ALIGN_CENTER, 0, -20); lv_obj_move_foreground(emoji_label_); }
+                if (emoji_image_) { lv_obj_align(emoji_image_, LV_ALIGN_CENTER, 0, -20); lv_obj_move_foreground(emoji_image_); }
                 lv_obj_move_foreground(face_status_);
                 lv_obj_remove_flag(face_status_, LV_OBJ_FLAG_HIDDEN);
                 if (top_bar_) lv_obj_add_flag(top_bar_, LV_OBJ_FLAG_HIDDEN);
@@ -64,6 +64,7 @@ private:
                 if (content_) lv_obj_remove_flag(content_, LV_OBJ_FLAG_HIDDEN);
             }
         }
+        if (show_face) ShowEmotion(); // A chat message may have hidden the original emotion renderer.
         if (state == last_state_) return;
         last_state_ = state;
         if (!face_status_) return;
