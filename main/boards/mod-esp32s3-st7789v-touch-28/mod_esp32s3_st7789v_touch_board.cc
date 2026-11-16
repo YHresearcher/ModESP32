@@ -47,6 +47,7 @@ private:
         self->test_step_=0;
         lv_obj_remove_flag(self->test_overlay_, LV_OBJ_FLAG_HIDDEN);
         self->MoveTarget();
+        ESP_LOGI("Touch5Point", "TOUCH_5PT_START from mascot: tap 5 markers, all-screen capture");
     }
     void SetExpressionText(const char* emotion) {
         if(!face_label_ || !face_status_)return;
@@ -73,7 +74,7 @@ private:
         self->test_step_ = 0;
         lv_obj_remove_flag(self->test_overlay_, LV_OBJ_FLAG_HIDDEN);
         self->MoveTarget();
-        ESP_LOGI("Touch5Point", "TOUCH_5PT_START: touch 5 targets, log x/y; calibration NOT yet saved");
+        ESP_LOGI("Touch5Point", "TOUCH_5PT_START: all-screen capture, no target hit-test required; calibration NOT saved");
     }
     static void OnTarget(lv_event_t* event) {
         auto* self = static_cast<TouchSpiDisplay*>(lv_event_get_user_data(event));
@@ -119,6 +120,10 @@ public:
         lv_obj_set_style_bg_opa(test_overlay_, LV_OPA_COVER, 0);
         lv_obj_set_style_pad_all(test_overlay_, 0, 0);
         lv_obj_set_scrollbar_mode(test_overlay_, LV_SCROLLBAR_MODE_OFF);
+        lv_obj_add_flag(test_overlay_, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_remove_flag(test_overlay_, LV_OBJ_FLAG_SCROLLABLE);
+        // Capture every press on this full-screen overlay, even when touch axes are wrong.
+        lv_obj_add_event_cb(test_overlay_, OnTarget, LV_EVENT_PRESSED, this);
         test_label_ = lv_label_create(test_overlay_);
         lv_obj_set_style_text_color(test_label_, lv_color_hex(0xB4E6FF), 0);
         lv_obj_set_pos(test_label_, 14, 12);
@@ -129,7 +134,8 @@ public:
         lv_obj_t* dot = lv_label_create(test_button_);
         lv_label_set_text(dot, "+");
         lv_obj_center(dot);
-        lv_obj_add_event_cb(test_button_, OnTarget, LV_EVENT_CLICKED, this);
+        lv_obj_remove_flag(test_button_, LV_OBJ_FLAG_CLICKABLE);
+        // Orange marker is visual only until touch mapping has been verified.
         lv_obj_add_flag(test_overlay_, LV_OBJ_FLAG_HIDDEN);
 
         // Optional experimental touch-first mascot preview. The proven XiaoZhi UI
@@ -280,7 +286,9 @@ private:
         // IRQ is polled/logged manually; polling driver avoids false interrupts on unverified boards.
         touch_cfg.int_gpio_num = GPIO_NUM_NC;
         touch_cfg.flags.swap_xy = 0;
-        touch_cfg.flags.mirror_x = 0;
+        // Current hardware reports right-hand BACK touches as left-hand TALK: horizontal axis reversed.
+        // Apply provisional X inversion and verify with physical five-point test.
+        touch_cfg.flags.mirror_x = 1;
         touch_cfg.flags.mirror_y = 0;
 
         err = esp_lcd_touch_new_spi_xpt2046(touch_io_, &touch_cfg, &touch_);
