@@ -117,6 +117,33 @@ public:
     }
 };
 
+// Board-specific microphone level diagnostics. No raw audio or transcripts are
+// logged. A nonzero amplitude proves electrical input, not ASR correctness.
+class ModDiagnosticAudioCodec : public NoAudioCodecSimplex {
+public:
+    using NoAudioCodecSimplex::NoAudioCodecSimplex;
+    bool InputData(std::vector<int16_t>& data) override {
+        if (!NoAudioCodecSimplex::InputData(data)) return false;
+        if (++frames_ % 100 == 0 && !data.empty()) {
+            uint32_t peak = 0;
+            uint64_t sum_abs = 0;
+            for (int16_t v : data) {
+                uint32_t abs_v = v == INT16_MIN ? 32768u :
+                    static_cast<uint32_t>(v < 0 ? -static_cast<int32_t>(v) : v);
+                if (abs_v > peak) peak = abs_v;
+                sum_abs += abs_v;
+            }
+            ESP_LOGI("ModMic", "MIC_LEVEL samples=%u peak=%u avg_abs=%u (not audio content)",
+                     static_cast<unsigned>(data.size()),
+                     static_cast<unsigned>(peak),
+                     static_cast<unsigned>(sum_abs / data.size()));
+        }
+        return true;
+    }
+private:
+    uint32_t frames_ = 0;
+};
+
 // Experimental firmware: keep the original, proven ST7789V target unchanged.
 class ModEsp32S3TouchBoard : public WifiBoard {
 private:
@@ -230,7 +257,7 @@ public:
     }
 
     AudioCodec* GetAudioCodec() override {
-        static NoAudioCodecSimplex audio_codec(
+        static ModDiagnosticAudioCodec audio_codec(
             AUDIO_INPUT_SAMPLE_RATE, AUDIO_OUTPUT_SAMPLE_RATE,
             AUDIO_I2S_SPK_GPIO_BCLK, AUDIO_I2S_SPK_GPIO_LRCK, AUDIO_I2S_SPK_GPIO_DOUT,
             AUDIO_I2S_MIC_GPIO_SCK, AUDIO_I2S_MIC_GPIO_WS, AUDIO_I2S_MIC_GPIO_DIN);
