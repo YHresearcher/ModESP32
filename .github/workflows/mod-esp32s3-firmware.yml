@@ -1,0 +1,58 @@
+name: ModESP32 S3 Firmware (Web Flash)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "main/boards/mod-esp32s3-st7789v-28/**"
+      - "main/audio/**"
+      - "main/display/**"
+      - "main/CMakeLists.txt"
+      - "main/Kconfig.projbuild"
+      - "scripts/build.py"
+      - "sdkconfig.defaults*"
+      - ".github/workflows/mod-esp32s3-firmware.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mod-esp32s3-firmware-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    container:
+      image: espressif/idf:release-v6.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build custom ESP32-S3 board
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$IDF_PATH/export.sh"
+          idf.py --version
+          python3 scripts/build.py mod-esp32s3-st7789v-28 --name mod-esp32s3-st7789v-28
+
+      - name: Verify merged firmware
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/merged-binary.bin
+          sha256sum build/merged-binary.bin > build/SHA256SUMS
+          ls -lh build/merged-binary.bin
+
+      - name: Upload browser-flashable firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: mod-esp32s3-st7789v-28-${{ github.sha }}
+          path: |
+            build/merged-binary.bin
+            build/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
