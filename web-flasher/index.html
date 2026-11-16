@@ -15,9 +15,20 @@
   <div class="steps">
    <section class="panel"><div class="step">01</div><h2>Chọn firmware</h2><p>Chỉ sử dụng <code>merged-binary.bin</code> dành cho <strong>mod-esp32s3-st7789v-28</strong> từ GitHub Actions. Không sử dụng file <code>xiaozhi.bin</code> độc lập tại offset 0.</p>
     <p><a href="https://github.com/YHresearcher/ModESP32/actions/workflows/mod-esp32s3-firmware.yml" target="_blank" rel="noopener">Mở GitHub Actions để tải firmware ↗</a></p>
+    <div class="auto-firmware">
+      <label for="firmwareSource">Nguồn firmware</label>
+      <select id="firmwareSource">
+        <option value="auto">Development – bản mới nhất từ GitHub</option>
+        <option value="manual">Thủ công – chọn file từ máy</option>
+      </select>
+      <div id="autoFirmwareStatus" class="status" role="status">Đang kiểm tra bản Development mới nhất…</div>
+      <button id="refreshFirmware" type="button">Kiểm tra lại bản mới</button>
+      <p class="small">Development là bản build thành công nhưng <strong>chưa được kiểm thử phần cứng</strong>. Chế độ Latest Tested sẽ xuất hiện khi đã có bản được nghiệm thu.</p>
+    </div>
+    <div id="manualFirmware" hidden>
     <label for="firmware">Firmware đã giải nén (.bin)</label><input id="firmware" type="file" accept=".bin,application/octet-stream">
     <label for="checksum">SHA256SUMS trong artifact (khuyến nghị)</label><input id="checksum" type="file" accept=".txt,.sha256,.sha256sum" aria-describedby="checksumHint">
-    <p class="small" id="checksumHint">Nếu không có SHA256SUMS, website vẫn kiểm tra cấu trúc file nhưng không thể xác minh nguồn gốc và tính toàn vẹn.</p>
+    <p class="small" id="checksumHint">Nếu không có SHA256SUMS, website chỉ kiểm tra cấu trúc file.</p></div>
     <div id="fileStatus" class="status" role="status">Chưa chọn firmware</div>
     <p class="small" id="firmwareHash"></p>
    </section>
@@ -29,7 +40,7 @@
       <span slot="unsupported" class="warning">Trình duyệt không hỗ trợ nạp qua Web Serial. Dùng Chrome/Edge trên desktop.</span>
       <span slot="not-allowed" class="warning">Cần HTTPS hoặc localhost và được cấp quyền truy cập USB.</span>
     </esp-web-install-button>
-    <p class="small" id="flashHelp">Cần chọn file firmware hợp lệ và đánh dấu cả hai ô xác nhận để bật nút Flash.</p>
+    <p class="small" id="flashHelp">Firmware phải tải và xác minh thành công trước khi bật nút Flash.</p>
    </section>
   </div>
   <section class="panel"><div class="heading"><div><div class="step">03</div><h2>Serial Monitor &amp; Boot Log</h2></div><span id="serialState" class="state" aria-live="polite">Chưa kết nối</span></div>
