@@ -113,8 +113,7 @@ jobs:
           export IMAGE_SIZE="$(stat -c %s merged-binary.bin)"
           export RELEASE_TAG="mod-esp32s3-touch-dev-${SOURCE_SHA:0:12}"
           python3 -c 'import json,os,datetime; print(json.dumps({"channel":"development","tested":False,"board":"mod-esp32s3-st7789v-touch-28","chipFamily":"ESP32-S3","tag":os.environ["RELEASE_TAG"],"sourceSha":os.environ["SOURCE_SHA"],"publishedAt":datetime.datetime.now(datetime.timezone.utc).isoformat(),"size":int(os.environ["IMAGE_SIZE"]),"sha256":os.environ["IMAGE_SHA256"],"releaseUrl":"https://github.com/"+os.environ["GH_REPO"]+"/releases/tag/"+os.environ["RELEASE_TAG"]},indent=2))' > latest-touch-development.json
-          CURRENT_SHA="$(gh api "repos/$GH_REPO/contents/web-flasher/latest-touch-development.json" --jq .sha)"
-          gh api -X PUT "repos/$GH_REPO/contents/web-flasher/latest-touch-development.json" \
-            -f message="chore(firmware): update latest Development manifest to ${RELEASE_TAG}" \
-            -f content="$(base64 -w0 latest-touch-development.json)" \
-            -f sha="$CURRENT_SHA" > /dev/null
+          CURRENT_SHA="$(gh api "repos/$GH_REPO/contents/web-flasher/latest-touch-development.json" --jq .sha 2>/dev/null || true)"
+          args=(-f message="chore(firmware): update latest Development manifest to ${RELEASE_TAG}" -f content="$(base64 -w0 latest-touch-development.json)")
+          if [[ -n "$CURRENT_SHA" ]]; then args+=(-f sha="$CURRENT_SHA"); fi
+          gh api -X PUT "repos/$GH_REPO/contents/web-flasher/latest-touch-development.json" "${args[@]}" > /dev/null
