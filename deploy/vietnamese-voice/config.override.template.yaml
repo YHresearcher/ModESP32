@@ -1,0 +1,46 @@
+# Deploy only as data/.config.yaml; no credentials in Git.
+# Upstream xinnan-tech/xiaozhi-esp32-server merges data/.config.yaml with config.yaml.
+# Do not use manager-api/console for this simple single-agent configuration.
+server:
+  ip: 0.0.0.0
+  port: 8000
+  http_port: 8003
+  websocket: ws://__LAN_IP__:8000/xiaozhi/v1/
+  timezone_offset: +7
+  auth:
+    enabled: false  # LAN ONLY: never expose 8000/8003 to the public Internet.
+selected_module:
+  ASR: GroqASR
+  LLM: OllamaLLM
+  TTS: EdgeTTS
+  VAD: SileroVAD
+  Memory: nomem
+  Intent: nointent
+ASR:
+  GroqASR:
+    type: openai
+    api_key: "__GROQ_KEY__"
+    base_url: https://api.groq.com/openai/v1/audio/transcriptions
+    model_name: whisper-large-v3-turbo
+    output_dir: tmp/
+LLM:
+  OllamaLLM:
+    type: ollama
+    model_name: qwen2.5:3b
+    base_url: http://host.docker.internal:11434
+TTS:
+  EdgeTTS:
+    type: edge
+    voice: vi-VN-HoaiMyNeural
+    output_dir: tmp/
+    language: "Tiếng Việt"
+prompt: |
+  Bạn là Chibi, trợ lý AI nữ dễ thương, nói chuyện bằng tiếng Việt.
+  Luôn trả lời bằng tiếng Việt tự nhiên, ngắn gọn, chính xác, dễ nghe.
+  Chỉ sử dụng tiếng Anh nếu người dùng yêu cầu. Không bắt chước giọng trẻ con.
+  Nếu không nghe rõ lời nói hãy hỏi lại bằng tiếng Việt.
+  Không tự nhận đã thực hiện hành động hoặc kiểm thử nếu chưa thực hiện.
+  Tránh sử dụng markdown khi trả lời bằng giọng nói.
+system_error_response: "Xin lỗi, Chibi đang gặp trục trặc kết nối. Mình thử lại nhé!"
+end_prompt:
+  enable: false
