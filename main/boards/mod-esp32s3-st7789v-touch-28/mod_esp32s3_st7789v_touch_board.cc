@@ -23,9 +23,8 @@
 
 #define TAG "ModS3Touch"
 
-// Face-only UI technical prototype. Real anime Chibi art has not yet been
-// embedded; reuse upstream XiaoZhi emotion rendering instead of a geometric
-// stand-in that does not resemble the approved mascot.
+// Face-only UI: embedded approved Chibi JPEG with XiaoZhi emotion fallback.
+// The agent/persona is configured by the connected cloud service, not LVGL.
 class TouchSpiDisplay : public SpiLcdDisplay {
 private:
     lv_obj_t* face_background_ = nullptr;
@@ -253,7 +252,11 @@ private:
         ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(lcd_io, &panel_cfg, &panel));
         ESP_ERROR_CHECK(esp_lcd_panel_reset(panel));
         ESP_ERROR_CHECK(esp_lcd_panel_init(panel));
-        ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel, true));
+        // This ST7789V module showed a photographic-negative effect with INVON.
+        // Use normal color mode. If this board revision is opposite, change
+        // DISPLAY_COLOR_INVERT in config.h; do not change RGB565 data.
+        ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel, DISPLAY_COLOR_INVERT));
+        ESP_LOGI(TAG, "DISPLAY_COLOR_INVERT=%d", static_cast<int>(DISPLAY_COLOR_INVERT));
         ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel, DISPLAY_SWAP_XY));
         ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y));
         ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel, true));
