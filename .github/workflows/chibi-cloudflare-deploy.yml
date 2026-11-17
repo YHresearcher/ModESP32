@@ -72,3 +72,11 @@ jobs:
           set -euo pipefail
           node -e 'process.stdout.write(JSON.stringify({GEMINI_API_KEY:process.env.GEMINI_API_KEY,CHIBI_DEVICE_TOKEN:process.env.CHIBI_DEVICE_TOKEN}))' \
             | npx wrangler secret bulk
+
+      - name: Smoke test live Vietnamese voice roundtrip
+        working-directory: cloudflare/chibi
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CHIBI_DEVICE_TOKEN: ${{ secrets.CHIBI_DEVICE_TOKEN }}
+          CHIBI_WS_URL: wss://chibi-esp32.hlthanh1992.workers.dev/ws
+        run: npm run smoke
