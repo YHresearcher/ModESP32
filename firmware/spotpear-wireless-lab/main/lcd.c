@@ -92,14 +92,14 @@ static void center_text(const char *s,int y,int scale,uint16_t color) {
 esp_err_t spotpear_lcd_init(void) {
     ESP_LOGI(TAG,"Initializing GC9A01 SPI; MOSI=%d SCLK=%d CS=%d DC=%d RST=%d BL=%d",
       LCD_PIN_MOSI,LCD_PIN_CLK,LCD_PIN_CS,LCD_PIN_DC,LCD_PIN_RST,LCD_PIN_BL);
-    // Stay dark during initial power-up; PCB v1.0 GPIO3 drives an NPN low-side transistor: HIGH=on.
+    // ESP32-AI-1.28 v1.0: GPIO3 is an active-HIGH backlight control.\n    // Keep BL continuously enabled for LCD diagnosis (no deliberate blanking).
     gpio_config_t bl_cfg={
        .pin_bit_mask=1ULL<<LCD_PIN_BL,.mode=GPIO_MODE_OUTPUT,
        .pull_up_en=GPIO_PULLUP_DISABLE,.pull_down_en=GPIO_PULLDOWN_DISABLE,
        .intr_type=GPIO_INTR_DISABLE
     };
     ESP_RETURN_ON_ERROR(gpio_config(&bl_cfg),TAG,"BL GPIO");
-    ESP_RETURN_ON_ERROR(gpio_set_level(LCD_PIN_BL,0),TAG,"BL off");
+    ESP_RETURN_ON_ERROR(gpio_set_level(LCD_PIN_BL,1),TAG,"BL on at startup");\n    ESP_LOGI(TAG,"LCD_BL_ENABLED: gpio=%d output=%d (expected 1)", LCD_PIN_BL, gpio_get_level(LCD_PIN_BL));
 
     spi_bus_config_t bus={
         .mosi_io_num=LCD_PIN_MOSI,.miso_io_num=-1,.sclk_io_num=LCD_PIN_CLK,
@@ -125,7 +125,7 @@ esp_err_t spotpear_lcd_init(void) {
     ESP_RETURN_ON_ERROR(esp_lcd_panel_reset(panel),TAG,"panel reset");
     ESP_RETURN_ON_ERROR(esp_lcd_panel_init(panel),TAG,"panel init");
     ESP_RETURN_ON_ERROR(esp_lcd_panel_invert_color(panel,true),TAG,"panel invert");
-    ESP_RETURN_ON_ERROR(esp_lcd_panel_mirror(panel,true,false),TAG,"panel mirror");
+    // Hardware-tested V1.0 reference uses no mirroring.\n    ESP_RETURN_ON_ERROR(esp_lcd_panel_mirror(panel,false,false),TAG,"panel mirror");
     ESP_RETURN_ON_ERROR(esp_lcd_panel_disp_on_off(panel,true),TAG,"panel on");
     framebuffer=heap_caps_malloc(LCD_W*LCD_H*2,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
     if(!framebuffer) framebuffer=heap_caps_malloc(LCD_W*LCD_H*2,MALLOC_CAP_8BIT);
@@ -179,7 +179,7 @@ esp_err_t spotpear_lcd_diagnostic(void) {
             ESP_LOGE(TAG, "LCD_DIAG_FAILED: %s err=%s", tests[k].name, esp_err_to_name(e));
             return e;
         }
-        ESP_RETURN_ON_ERROR(gpio_set_level(LCD_PIN_BL, 1), TAG, "backlight on");
+        ESP_RETURN_ON_ERROR(gpio_set_level(LCD_PIN_BL, 1), TAG, "backlight on");\n        ESP_LOGI(TAG, "LCD_DIAG_BL_STATUS: gpio=%d output=%d (expected 1)", LCD_PIN_BL, gpio_get_level(LCD_PIN_BL));
         // 115200 bytes at 10 MHz is ~92 ms; leave margin for queued SPI DMA.
         vTaskDelay(pdMS_TO_TICKS(1100));
         ESP_LOGI(TAG, "LCD_DIAG_TX_SUBMITTED: %s (display not read back)", tests[k].name);
