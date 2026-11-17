@@ -5,3 +5,6 @@
 // Pin mappings are board-specific; do not use for other round ESP32 boards.
 esp_err_t spotpear_lcd_init(void);
 esp_err_t spotpear_lcd_show_home(void);
+
+// Sends red, green, blue, and white full-screen tests (~4.4s).
+esp_err_t spotpear_lcd_diagnostic(void);
