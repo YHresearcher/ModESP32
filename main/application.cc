@@ -401,8 +401,13 @@ void Application::ActivationTask() {
     // Check for new assets version
     CheckAssetsVersion();
 
-    // Check for new firmware version
+    // Do not let XiaoZhi OTA provision its default agent in custom mode.
+#ifndef CONFIG_MODESP32_CUSTOM_AGENT
     CheckNewVersion();
+#else
+    ESP_LOGI(TAG, "Private agent: bypass XiaoZhi OTA/activation");
+    ota_->MarkCurrentVersionValid();
+#endif
 
     // Initialize the protocol
     InitializeProtocol();
@@ -574,6 +579,10 @@ void Application::InitializeProtocol() {
 
     display->SetStatus(Lang::Strings::LOADING_PROTOCOL);
 
+#ifdef CONFIG_MODESP32_CUSTOM_AGENT
+    // Ignore old XiaoZhi credentials still present in NVS.
+    protocol_ = std::make_unique<WebsocketProtocol>();
+#else
     if (ota_->HasMqttConfig()) {
         protocol_ = std::make_unique<MqttProtocol>();
     } else if (ota_->HasWebsocketConfig()) {
@@ -582,6 +591,7 @@ void Application::InitializeProtocol() {
         ESP_LOGW(TAG, "No protocol specified in the OTA config, using MQTT");
         protocol_ = std::make_unique<MqttProtocol>();
     }
+#endif
 
     protocol_->OnConnected([this]() { DismissAlert(); });
 
