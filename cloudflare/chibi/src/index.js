@@ -67,23 +67,44 @@ function toB64(bytes) {
   }
   return btoa(parts.join(""));
 }
-async function gemini(env, parts, options = {}) {
+async function gemini(env, parts, mode = "chat") {
   if (!env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is missing");
-  const model = env.GEMINI_MODEL || "gemini-3.8-flash";
-  const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
-    method: "POST",
-    headers: {"Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY},
-    body: JSON.stringify({
-      systemInstruction: {parts: [{text: SYSTEM}]},
-      contents: [{role: "user", parts}],
-      generationConfig: {maxOutputTokens: 350, ...options}
-    })
-  });
-  if (!response.ok) throw new Error("Gemini HTTP " + response.status);
-  const result = await response.json();
-  const text = (result.candidates?.[0]?.content?.parts || []).map(x => x.text || "").join("").trim();
-  if (!text) throw new Error("Gemini returned empty text");
-  return text;
+  const primary = mode === "asr"
+    ? (env.GEMINI_ASR_MODEL || "gemini-3.8-flash")
+    : (env.GEMINI_MODEL || "gemini-3.8-flash");
+  const fallback = mode === "chat" ? (env.GEMINI_CHAT_FALLBACK || "gemini-3.5-flash-lite") : null;
+  const models = [primary, ...(fallback && fallback !== primary ? [fallback] : [])];
+  let lastCode = 503;
+  for (const model of models) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/" +
+        encodeURIComponent(model) + ":generateContent", {
+          method: "POST",
+          headers: {"Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY},
+          body: JSON.stringify({
+            systemInstruction: {parts: [{text: SYSTEM}]},
+            contents: [{role: "user", parts}],
+            generationConfig: {maxOutputTokens: 500}
+          })
+        }
+      );
+      if (response.ok) {
+        const result = await response.json();
+        const text = (result.candidates?.[0]?.content?.parts || [])
+          .map(x => x.text || "").join("").trim();
+        if (!text) throw new Error("Gemini returned empty text");
+        return text;
+      }
+      lastCode = response.status;
+      if (lastCode !== 429 && lastCode !== 500 && lastCode !== 503) {
+        throw new Error("Gemini HTTP " + lastCode);
+      }
+      // Low CPU use during upstream overload; retry only transient failures.
+      if (attempt < 2) await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+    }
+  }
+  throw new Error("Gemini HTTP " + lastCode);
 }
 function reply(ws, sid, type, body = {}) {
   try { ws.send(JSON.stringify({type, session_id: sid, ...body})); }
@@ -106,7 +127,7 @@ function agentSession(ws, env) {
       const transcript = await gemini(env, [
         {text: "Chép lại nguyên văn lời nói tiếng Việt trong âm thanh sau. Chỉ trả về nội dung được nói, có dấu."},
         {inlineData: {mimeType: "audio/ogg", data: toB64(ogg)}}
-      ]);
+      ], "asr");
       reply(ws, sid, "stt", {text: transcript});
       stage = "chat";
       const answer = await gemini(env, [{text: "Người dùng nói: " + transcript + "\nHãy trả lời."}]);
