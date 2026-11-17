@@ -13,11 +13,11 @@ No deauth flood, beacon spam, identity spoofing or third-party access. Use only 
 
 ## LCD bring-up (experimental)
 
-This build initializes a 240×240 **GC9A01** round LCD at boot, then draws a standalone **SPOTPEAR / WIRELESS LAB / USB READY** splash screen. Reference Spotpear ESP32-S3 BOX pin mapping: MOSI=GPIO2, SCLK=GPIO4, CS=GPIO5, DC=GPIO47, RST=GPIO38 and backlight=GPIO42 (active-low). Display uses the Espressif `esp_lcd_gc9a01` component and SPI3 at 20 MHz. These pins are not universal for ESP32-S3 round-screen devices; verify your board revision first.
+This build initializes a 240×240 **GC9A01** round LCD at boot, runs an automatic red/green/blue/white full-screen diagnostic (~4.4 seconds), then draws a standalone **SPOTPEAR / WIRELESS LAB / USB READY** splash screen. The command `lcd` repeats this test without resetting the device. The logs `LCD_DIAG_SEND`, `LCD_DIAG_TX_SUBMITTED` and `LCD_DIAG_DONE` confirm submission to SPI only, not actual LCD display. Reference Spotpear ESP32-S3 BOX pin mapping: MOSI=GPIO2, SCLK=GPIO4, CS=GPIO5, DC=GPIO47, RST=GPIO38 and backlight=GPIO42 (active-low). Display uses the Espressif `esp_lcd_gc9a01` component and SPI3 at 10 MHz. These pins are not universal for ESP32-S3 round-screen devices; verify your board revision first.
 
 **Important:** This is an LCD hardware test and USB console firmware, not yet a two-button menu. It does not implement buttons, speaker, microphone or microSD. Appearance, color order, backlight polarity and physical function still require testing on the actual board. Build success is not hardware validation.
 
-USB console commands (`help`, `wifi`, `ble`, `ap`, `advertise`, `stop`) now use interrupt-driven USB Serial/JTAG RX and log `Command received: ...` when Enter terminates a command. If the LCD fails, the firmware should report `LCD init failed` on USB and continue radio initialization.
+USB console commands (`help`, `wifi`, `ble`, `ap`, `advertise`, `stop`, `lcd`) now use interrupt-driven USB Serial/JTAG RX and log `Command received: ...` when Enter terminates a command. If the LCD fails, the firmware should report `LCD init failed` on USB and continue radio initialization.
 
 ## Build
 
