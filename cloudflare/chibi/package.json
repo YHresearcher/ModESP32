@@ -7,10 +7,12 @@
     "deploy": "wrangler deploy",
     "check": "node --check src/index.js && node --check src/tts.js",
     "test": "node --test",
-    "bundle": "wrangler deploy --dry-run --outdir .wrangler/dryrun"
+    "bundle": "wrangler deploy --dry-run --outdir .wrangler/dryrun",
+    "smoke": "node scripts/smoke.mjs"
   },
   "devDependencies": {
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.0.0",
+    "ws": "^8.18.0"
   },
   "dependencies": {
     "libopus-wasm": "^0.4.1"
