@@ -8,3 +8,10 @@ GEMINI_MODEL = "gemini-3.5-flash-lite"
 GEMINI_ASR_MODEL = "gemini-3.5-flash-lite"
 GEMINI_ASR_FALLBACK = "gemini-3.8-flash"
 GEMINI_CHAT_FALLBACK = "gemini-3.8-flash"
+
+# Server-side Chibi persona preset: friendly | professional | concise.
+# Changing the LVGL face or Web Flasher profile never changes this value.
+CHIBI_PROFILE = "friendly"
+# Gemini TTS voice, used by cloudflare/chibi/src/tts.js.
+# Set a valid Gemini prebuilt voice name then redeploy the Worker.
+GEMINI_TTS_VOICE = "Kore"

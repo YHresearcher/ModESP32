@@ -83,7 +83,16 @@ bool WebsocketProtocol::OpenAudioChannel() {
 #ifdef CONFIG_MODESP32_CUSTOM_AGENT
     // Never inherit XiaoZhi's saved server URL or authorization token.
     url = CONFIG_MODESP32_AGENT_WS_URL;
-    token = CONFIG_MODESP32_AGENT_TOKEN;
+    // Per-device secret is provisioned in NVS under the dedicated
+    // "chibi" namespace. Never fall back to a previous XiaoZhi token.
+    Settings chibi_settings("chibi", false);
+    token = chibi_settings.GetString("device_token", CONFIG_MODESP32_AGENT_TOKEN);
+    if (token.empty()) {
+        ESP_LOGE(TAG, "CHIBI_AUTH_MISSING: no per-device token provisioned in chibi/device_token");
+        SetError("Chibi needs a private device token (not XiaoZhi)");
+        error_occurred_ = true;
+        return false;
+    }
     if (url.empty() ||
         !(url.rfind("wss://", 0) == 0 || url.rfind("ws://", 0) == 0)) {
         ESP_LOGE(TAG, "Missing/invalid custom agent endpoint; no XiaoZhi fallback");

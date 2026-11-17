@@ -5,6 +5,9 @@ on:
       - "main/Kconfig.projbuild"
       - "main/protocols/websocket_protocol.cc"
       - "main/boards/mod-esp32s3-st7789v-28/**"
+      - "main/boards/mod-esp32s3-st7789v-touch-28/**"
+      - "main/application.cc"
+      - "main/application.h"
       - ".github/workflows/chibi-firmware-ci.yml"
   workflow_dispatch:
 
@@ -23,15 +26,15 @@ jobs:
         run: |
           set -euo pipefail
           source "$IDF_PATH/export.sh"
-          python scripts/build.py mod-esp32s3-st7789v-28 --name mod-esp32s3-st7789v-28-chibi-cloud
+          python scripts/build.py mod-esp32s3-st7789v-touch-28 --name mod-esp32s3-st7789v-touch-28-chibi-cloud --language vi-VN --wake-word hiesp
       - name: Verify no credential in committed build options
         shell: bash
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
-          c=json.loads(Path("main/boards/mod-esp32s3-st7789v-28/config.json").read_text())
+          c=json.loads(Path("main/boards/mod-esp32s3-st7789v-touch-28/config.json").read_text())
           item=next(x for x in c["builds"] if x["name"].endswith("-chibi-cloud"))
           assert all("MODESP32_AGENT_TOKEN" not in x for x in item["sdkconfig_append"])
-          print("Public build config contains no private bearer token.")
+          print("Touch Chibi Cloud build has no embedded device token; provisioning is required.")
           PY

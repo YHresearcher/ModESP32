@@ -5,6 +5,13 @@
     {
       "name": "mod-esp32s3-st7789v-touch-28",
       "sdkconfig_append": []
+    },
+    {
+      "name": "mod-esp32s3-st7789v-touch-28-chibi-cloud",
+      "sdkconfig_append": [
+        "CONFIG_MODESP32_CUSTOM_AGENT=y",
+        "CONFIG_MODESP32_AGENT_WS_URL=\"wss://chibi-esp32.hlthanh1992.workers.dev/ws\""
+      ]
     }
   ]
 }

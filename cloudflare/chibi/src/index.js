@@ -2,7 +2,15 @@
 import { synthesizeGemini, encodeOpus24k } from "./tts.js";
 const MAX_AUDIO_BYTES = 256_000;
 const MAX_FRAMES = 180; // up to 10.8s at 60ms per frame
-const SYSTEM = "Bạn là Chibi, trợ lý giọng nói trên ESP32. Trả lời bằng tiếng Việt có dấu, ngắn gọn, thân thiện, chính xác. Không tuyên bố đã làm gì nếu chưa thực hiện.";
+const PROFILE_PROMPTS = Object.freeze({
+  friendly: "Bạn là Chibi, trợ lý giọng nói thân thiện trên ESP32. Trả lời bằng tiếng Việt có dấu, tự nhiên, súc tích. Không tuyên bố đã làm gì nếu chưa thực hiện.",
+  professional: "Bạn là Chibi, trợ lý chuyên nghiệp trên ESP32. Sử dụng tiếng Việt lịch sự, chính xác, ưu tiên thông tin có thể kiểm chứng; không tự nhận đã thực hiện hành động khi chưa có kết quả.",
+  concise: "Bạn là Chibi, trợ lý tiếng Việt trên ESP32. Trả lời thật ngắn gọn, dễ nghe, chỉ nêu điều quan trọng. Không tự nhận đã làm gì nếu chưa thực hiện."
+});
+function systemPrompt(env) {
+  const profile = String(env.CHIBI_PROFILE || "friendly").trim().toLowerCase();
+  return PROFILE_PROMPTS[profile] || PROFILE_PROMPTS.friendly;
+}
 const utf8 = (text) => new TextEncoder().encode(text);
 
 function checksum(buffer) {
@@ -85,7 +93,7 @@ async function gemini(env, parts, mode = "chat") {
           method: "POST",
           headers: {"Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY},
           body: JSON.stringify({
-            systemInstruction: {parts: [{text: SYSTEM}]},
+            systemInstruction: {parts: [{text: systemPrompt(env)}]},
             contents: [{role: "user", parts}],
             generationConfig: {maxOutputTokens: 500}
           })
