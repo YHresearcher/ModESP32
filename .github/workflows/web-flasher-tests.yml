@@ -27,6 +27,8 @@ jobs:
       - name: Check browser script syntax
         run: |
           node --check web-flasher/app.js
+          node --check web-flasher/spotpear-flasher.mjs
+          node --check web-flasher/_worker.js
           node --check web-flasher/diagnostics.mjs
       - name: Run diagnostics unit tests
         run: node --test web-flasher/tests/*.test.mjs
