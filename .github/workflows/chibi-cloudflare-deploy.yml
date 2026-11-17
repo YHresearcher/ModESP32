@@ -50,6 +50,7 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npm run check
+          node scripts/inspect-codec.mjs
           npm test
           npm run bundle
 
