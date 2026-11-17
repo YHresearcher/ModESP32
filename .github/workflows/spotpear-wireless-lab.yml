@@ -37,7 +37,7 @@ jobs:
           set -euo pipefail
           source "$IDF_PATH/export.sh"
           test -s build/flash_args
-          esptool.py --chip esp32s3 merge_bin -o build/merged-binary.bin @build/flash_args
+          (cd build && esptool.py --chip esp32s3 merge_bin -o merged-binary.bin @flash_args)
           python3 - <<'PY'
           from pathlib import Path
           p=Path("build/merged-binary.bin")
