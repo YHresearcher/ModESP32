@@ -166,12 +166,12 @@ void app_main(void) {
         char incoming;
         int count = usb_serial_jtag_read_bytes(&incoming, 1, pdMS_TO_TICKS(250));
         if (count <= 0) continue;
-        if (incoming == '\\r' || incoming == '\\n') {
+        if (incoming == '\r' || incoming == '\n') {
             if (used == 0) continue; // CRLF's second terminator
-            cmd[used] = '\\0';
+            cmd[used] = '\0';
             ESP_LOGI(TAG, "Command received: %s", cmd);
             used = 0;
-        } else if (incoming == '\\b' || incoming == 127) {
+        } else if (incoming == '\b' || incoming == 127) {
             if (used > 0) --used;
             continue;
         } else if (incoming >= 32 && incoming <= 126) {
