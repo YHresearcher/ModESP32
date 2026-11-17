@@ -1,14 +1,25 @@
 import fs from "node:fs";
 import path from "node:path";
-const root="node_modules/libopus-wasm";
-for(const file of ["dist/index.js","dist/wasm.js","dist/libopus.wasm","dist/libopus.generated.mjs"]){
- const p=path.join(root,file);
- if(fs.existsSync(p))console.log("file",file,fs.statSync(p).size);
+const root="node_modules/libopus-wasm/dist";
+function walk(dir){
+ for(const e of fs.readdirSync(dir)){
+   const p=path.join(dir,e);
+   if(fs.statSync(p).isDirectory()) walk(p);
+   else {
+     const len=fs.statSync(p).size;
+     console.log("codec-file",p,len);
+     if(/\.(m?js)$/.test(p)){
+       const t=fs.readFileSync(p,"utf8");
+       for(const pat of ["instantiate", "wasmBinary", "base64", "AGFzbQ", "atob", "data:application", "wasmBinaryFile"]){
+          const i=t.indexOf(pat);
+          if(i>=0){
+            const snippet=t.slice(Math.max(0,i-60),i+160).replace(/[A-Za-z0-9+/]{60,}/g,"<base64>");
+            console.log("codec-ref",pat,i,snippet);
+          }
+       }
+       console.log("codec-head",t.slice(0,180).replace(/[A-Za-z0-9+/]{60,}/g,"<base64>"));
+     }
+   }
+ }
 }
-const text=fs.readFileSync(path.join(root,"dist/index.js"),"utf8");
-console.log("index chars",text.length);
-for(const pattern of ["WebAssembly.instantiate","wasmBinary","base64","data:application/wasm","AGFzbQ","atob","Uint8Array.from"]){
- const at=text.indexOf(pattern);
- console.log(pattern,at,at>=0?text.slice(Math.max(0,at-110),at+200).replace(/[A-Za-z0-9+/]{70,}/g,"<base64>"):"");
-}
-console.log("long text literals", [...text.matchAll(/["'`]([A-Za-z0-9+/]{100,})["'`]/g)].slice(0,3).map(x=>x[1].length));
+walk(root);
