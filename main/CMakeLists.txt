@@ -1210,6 +1210,26 @@ endif()
 if(IDF_TARGET STREQUAL "esp32s3")
     list(APPEND MAIN_PRIV_REQUIRES_EXTRA esp_driver_usb_serial_jtag)
 endif()
+# Chibi firmware build identification (UTC, generated when CMake configures).
+# Keep SDK firmware version untouched for OTA compatibility.
+string(TIMESTAMP CHIBI_BUILD_UTC "%Y%m%d-%H%M" UTC)
+execute_process(
+    COMMAND git rev-parse --short=7 HEAD
+    WORKING_DIRECTORY "${PROJECT_DIR}"
+    OUTPUT_VARIABLE CHIBI_BUILD_COMMIT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET)
+if(NOT CHIBI_BUILD_COMMIT MATCHES "^[0-9a-fA-F]+$")
+    set(CHIBI_BUILD_COMMIT "nogit")
+endif()
+set(CHIBI_BUILD_ID "CHIBI-${CHIBI_BUILD_UTC}-${CHIBI_BUILD_COMMIT}")
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/chibi_build_id.h.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/chibi_build_id.h"
+    @ONLY)
+message(STATUS "Chibi firmware build ID: ${CHIBI_BUILD_ID}")
+list(APPEND INCLUDE_DIRS "${CMAKE_CURRENT_BINARY_DIR}")
+
 idf_component_register(SRCS ${SOURCES}
                     EMBED_FILES ${LANG_SOUNDS} ${COMMON_SOUNDS}
                     INCLUDE_DIRS ${INCLUDE_DIRS}
