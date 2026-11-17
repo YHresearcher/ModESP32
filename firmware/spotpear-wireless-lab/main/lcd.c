@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "esp_err.h"
+#include "esp_check.h"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
 #include "driver/gpio.h"
