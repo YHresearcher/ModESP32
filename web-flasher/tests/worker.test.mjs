@@ -48,7 +48,7 @@ test("ILI9341 display returns only ILI9341 build metadata",async()=>{
   const iliTag="mod-esp32s3-ili9341-dev-abcdef123456";
   const ili={...manifest,board:"mod-esp32s3-ili9341-28",tag:iliTag,sourceSha:"abcdef123456"+"f".repeat(28)};
   const fetchIli=async url=>{
-    if(url.endsWith("latest-ili9341.json"))return Response.json(ili);
+    if(new URL(url).pathname.endsWith("/latest-ili9341.json"))return Response.json(ili);
     if(url.endsWith("latest-development.json"))return Response.json(manifest);
     if(url.includes("/releases/download/"))return new Response(new Uint8Array([0xe9]),{status:200});
     throw Error("Unexpected URL "+url);
@@ -78,7 +78,7 @@ test("Spotpear accepts only matching short merged-image manifest",async()=>{
   const sp={...manifest,tag:spTag,sourceSha:"aabbccddeeff"+"0".repeat(28),
     board:"spotpear-box128-wireless-lab",size:320000};
   const fetchSp=async url=>{
-    if(url.endsWith("latest-spotpear.json"))return Response.json(sp);
+    if(new URL(url).pathname.endsWith("/latest-spotpear.json"))return Response.json(sp);
     if(url.includes("/releases/download/"))return new Response(new Uint8Array([0xe9,0,0,0]));
     throw Error("Unexpected URL "+url);
   };

@@ -30,7 +30,7 @@ function releaseBinary(tag) {
 }
 async function getManifest(fetcher, assets, request, profile) {
   try {
-    const remote = await fetcher(RAW_BASE + profile.file, {headers:{"User-Agent":"ModESP32-Firmware-Center"},redirect:"follow"});
+    const remote = await fetcher(RAW_BASE + profile.file + "?cache_bust=" + Math.floor(Date.now() / 30000), {headers:{"User-Agent":"ModESP32-Firmware-Center","Cache-Control":"no-cache"},redirect:"follow"});
     if (remote.ok) {
       const m = await remote.json();
       if(valid(m,profile))return m;
