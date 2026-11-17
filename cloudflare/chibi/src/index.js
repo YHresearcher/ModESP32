@@ -70,13 +70,15 @@ function toB64(bytes) {
 async function gemini(env, parts, mode = "chat") {
   if (!env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is missing");
   const primary = mode === "asr"
-    ? (env.GEMINI_ASR_MODEL || "gemini-3.8-flash")
+    ? (env.GEMINI_ASR_MODEL || "gemini-3.5-flash-lite")
     : (env.GEMINI_MODEL || "gemini-3.5-flash-lite");
-  const fallback = mode === "chat" ? (env.GEMINI_CHAT_FALLBACK || "gemini-3.8-flash") : null;
+  const fallback = mode === "chat"
+    ? (env.GEMINI_CHAT_FALLBACK || "gemini-3.8-flash")
+    : (env.GEMINI_ASR_FALLBACK || "gemini-3.8-flash");
   const models = [primary, ...(fallback && fallback !== primary ? [fallback] : [])];
   let lastCode = 503;
   for (const model of models) {
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 2; attempt++) {
       const response = await fetch(
         "https://generativelanguage.googleapis.com/v1beta/models/" +
         encodeURIComponent(model) + ":generateContent", {
@@ -101,7 +103,7 @@ async function gemini(env, parts, mode = "chat") {
         throw new Error("Gemini HTTP " + lastCode);
       }
       // Low CPU use during upstream overload; retry only transient failures.
-      if (attempt < 2) await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+      if (attempt < 1) await new Promise(r => setTimeout(r, 750));
     }
   }
   throw new Error("Gemini HTTP " + lastCode);
