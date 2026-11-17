@@ -14,6 +14,7 @@
   <section class="hero"><p class="eyebrow">DIY AI VOICE ASSISTANT</p><h1>Flash firmware &amp; chẩn đoán thiết bị</h1><p>ST7789V / ILI9341 2.8” · 240 × 320 · I²S Microphone · MAX98357A · XiaoZhi</p><div id="compat" class="notice">Đang kiểm tra Web Serial…</div></section>
   <nav class="tabnav" aria-label="Các phần hướng dẫn">
   <button type="button" class="tab active" data-tab="flash" aria-selected="true">⚡ Flash Firmware</button>
+  <button type="button" class="tab" data-tab="spotpear" aria-selected="false">📡 Spotpear 1.28”</button>
   <button type="button" class="tab" data-tab="wiring" aria-selected="false">🔌 Hướng dẫn kết nối</button>
   <button type="button" class="tab" data-tab="serial" aria-selected="false">🧪 Serial &amp; Chẩn đoán</button>
 </nav>
@@ -61,6 +62,33 @@
    </section>
   </div>
 </div>
+<section id="spotpearTab" class="tabpanel panel" hidden>
+  <div class="step">SPOTPEAR · EXPERIMENTAL</div>
+  <h2>Spotpear ESP32-S3 BOX 1.28” — Wireless Lab</h2>
+  <p><strong>Firmware riêng dành cho Spotpear, không dành cho ESP32-S3 + LCD 2.8 inch.</strong> Chức năng Wi-Fi/BLE hiện vận hành qua USB Serial; driver màn hình GC9A01, nút, micro, loa và thẻ SD <strong>chưa được tích hợp</strong>.</p>
+  <div class="notice"><strong>Lưu ý:</strong> Build thành công không chứng minh tương thích phần cứng. Firmware sẽ thay thế phần mềm gốc và màn hình có thể tối đen. Không nạp nếu chưa xác nhận ESP32-S3 N16R8 đúng phiên bản PCB và đã sao lưu flash gốc.</div>
+  <div class="steps">
+    <section class="panel">
+      <h3>01 · Kiểm tra firmware</h3>
+      <p><a href="https://github.com/YHresearcher/ModESP32/actions/workflows/spotpear-wireless-lab.yml" target="_blank" rel="noopener">Xem GitHub Actions Spotpear ↗</a></p>
+      <p id="spotpearStatus" class="status" role="status">Đang kiểm tra firmware…</p>
+      <button id="spotpearRefresh" type="button">Kiểm tra lại bản Spotpear</button>
+      <p class="small">Bản Development được kiểm tra SHA-256 trước khi cho phép flash. Mỗi bản được xuất bản với tag bất biến riêng và không được tự động chuyển thành firmware Stable.</p>
+    </section>
+    <section class="panel">
+      <h3>02 · Xác nhận trước khi flash</h3>
+      <label class="checkline"><input type="checkbox" id="spotpearBoardConfirm"> Tôi đã xác nhận chip ESP32-S3 N16R8 và phiên bản bo Spotpear BOX của mình.</label>
+      <label class="checkline"><input type="checkbox" id="spotpearBackupConfirm"> Tôi đã sao lưu flash gốc và biết cách khôi phục bằng USB.</label>
+      <label class="checkline"><input type="checkbox" id="spotpearExperimentalConfirm"> Tôi hiểu đây là firmware USB-only thử nghiệm và màn hình tròn có thể không hiển thị.</label>
+      <esp-web-install-button id="spotpearInstaller" class="installer" manifest="about:blank">
+        <button id="spotpearFlash" slot="activate" class="primary" disabled>Kết nối &amp; Flash Spotpear (Experimental)</button>
+        <span slot="unsupported" class="warning">Chrome hoặc Edge desktop cần Web Serial.</span>
+        <span slot="not-allowed" class="warning">Web Serial cần HTTPS và quyền truy cập USB.</span>
+      </esp-web-install-button>
+      <p class="small">Sau khi flash, mở tab Serial &amp; Chẩn đoán ở 115200 baud để xem log. Lệnh USB: <code>wifi</code>, <code>ble</code>, <code>ap</code>, <code>advertise</code>, <code>stop</code>.</p>
+    </section>
+  </div>
+</section>
 <section id="wiringTab" class="panel tabpanel" hidden>
  <div class="step">02 · WIRING GUIDE</div><h2>Hướng dẫn đấu nối LCD SPI 2.8"</h2>
  <p><strong>Tháo nguồn USB và nguồn ngoài trước khi đấu dây.</strong> Đây là sơ đồ GPIO <em>dự kiến của firmware</em>, không phải pinout đã được kiểm nghiệm trên module bạn đang cầm. Chân VCC/LED phải đọc datasheet hoặc nhãn board trước khi cấp điện.</p>
@@ -155,5 +183,6 @@
   <footer>ModESP32 · Experimental build · Không flash nếu chưa xác minh phần cứng. <a href="https://github.com/YHresearcher/ModESP32/issues" target="_blank" rel="noopener">GitHub Issues</a></footer>
  </main>
  <script type="module" src="./app.js"></script>
+ <script type="module" src="./spotpear-flasher.mjs"></script>
 </body>
 </html>
