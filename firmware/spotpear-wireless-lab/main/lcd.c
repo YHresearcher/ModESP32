@@ -1,5 +1,6 @@
-// Spotpear ESP32-S3 BOX 1.28" GC9A01 LCD bring-up (ESP-IDF 5.3).
-// SpotPear ESP32-AI-1.28 v1.0 (non-touch) pin map, NOT the BOX touchscreen.\n// Source: tomorrow56/xiaozhi-esp32 at fed7f146, main/boards/spotpear/spotpear-esp32-ai-1.28/config.h
+// Spotpear ESP32-AI-1.28 v1.0 (non-touch) GC9A01 bring-up (ESP-IDF 5.3).
+// SpotPear ESP32-AI-1.28 v1.0 (non-touch) pin map, NOT the BOX touchscreen.
+// Source: tomorrow56/xiaozhi-esp32 at fed7f146, main/boards/spotpear/spotpear-esp32-ai-1.28/config.h
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -19,12 +20,12 @@
 #define LCD_W 240
 #define LCD_H 240
 #define LCD_SPI_HOST SPI3_HOST
-#define LCD_PIN_MOSI 2
-#define LCD_PIN_CLK 4
-#define LCD_PIN_CS 5
-#define LCD_PIN_DC 47
-#define LCD_PIN_RST 38
-#define LCD_PIN_BL 42
+#define LCD_PIN_MOSI 17
+#define LCD_PIN_CLK 14
+#define LCD_PIN_CS 13
+#define LCD_PIN_DC 10
+#define LCD_PIN_RST 18
+#define LCD_PIN_BL 3
 #define RGB565(r,g,b) (uint16_t)((((r)&0xf8)<<8)|(((g)&0xfc)<<3)|((b)>>3))
 
 static const char *TAG = "SPOTPEAR_LCD";
@@ -178,7 +179,7 @@ esp_err_t spotpear_lcd_diagnostic(void) {
             ESP_LOGE(TAG, "LCD_DIAG_FAILED: %s err=%s", tests[k].name, esp_err_to_name(e));
             return e;
         }
-        ESP_RETURN_ON_ERROR(gpio_set_level(LCD_PIN_BL, 0), TAG, "backlight on");
+        ESP_RETURN_ON_ERROR(gpio_set_level(LCD_PIN_BL, 1), TAG, "backlight on");
         // 115200 bytes at 10 MHz is ~92 ms; leave margin for queued SPI DMA.
         vTaskDelay(pdMS_TO_TICKS(1100));
         ESP_LOGI(TAG, "LCD_DIAG_TX_SUBMITTED: %s (display not read back)", tests[k].name);
