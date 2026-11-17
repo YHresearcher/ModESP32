@@ -46,10 +46,29 @@ Application::Application() : notify_player_(audio_service_) {
                                                 .name = "clock_timer",
                                                 .skip_unhandled_events = true};
     esp_timer_create(&clock_timer_args, &clock_timer_handle_);
+#ifdef CONFIG_MODESP32_CUSTOM_AGENT
+    esp_timer_create_args_t silence_args = {
+        .callback = [](void* arg) {
+            auto* app = static_cast<Application*>(arg);
+            xEventGroupSetBits(app->event_group_, MAIN_EVENT_CHIBI_SILENCE_TIMEOUT);
+        },
+        .arg = this,
+        .dispatch_method = ESP_TIMER_TASK,
+        .name = "chibi_silence",
+        .skip_unhandled_events = true,
+    };
+    ESP_ERROR_CHECK(esp_timer_create(&silence_args, &chibi_silence_timer_));
+#endif
 }
 
 Application::~Application() {
     notify_player_.Stop();
+#ifdef CONFIG_MODESP32_CUSTOM_AGENT
+    if (chibi_silence_timer_ != nullptr) {
+        esp_timer_stop(chibi_silence_timer_);
+        esp_timer_delete(chibi_silence_timer_);
+    }
+#endif
     if (clock_timer_handle_ != nullptr) {
         esp_timer_stop(clock_timer_handle_);
         esp_timer_delete(clock_timer_handle_);
@@ -202,7 +221,7 @@ void Application::Run() {
         MAIN_EVENT_NETWORK_CONNECTED | MAIN_EVENT_NETWORK_DISCONNECTED | MAIN_EVENT_TOGGLE_CHAT |
         MAIN_EVENT_START_LISTENING | MAIN_EVENT_STOP_LISTENING | MAIN_EVENT_ACTIVATION_DONE |
         MAIN_EVENT_STATE_CHANGED | MAIN_EVENT_PLAYBACK_DRAINED | MAIN_EVENT_STARTUP_HINT_TIMEOUT |
-        MAIN_EVENT_PROTOCOL_PENDING;
+        MAIN_EVENT_PROTOCOL_PENDING | MAIN_EVENT_CHIBI_SILENCE_TIMEOUT;
 
     while (true) {
         auto bits = xEventGroupWaitBits(event_group_, ALL_EVENTS, pdTRUE, pdFALSE, portMAX_DELAY);
@@ -283,8 +302,28 @@ void Application::Run() {
             if (GetDeviceState() == kDeviceStateListening) {
                 auto led = Board::GetInstance().GetLed();
                 led->OnStateChanged();
+#ifdef CONFIG_MODESP32_CUSTOM_AGENT
+                // Run VAD handling only in the main task. The audio callback
+                // can coalesce notifications, so read the latest VAD state.
+                if (audio_service_.IsVoiceDetected()) {
+                    chibi_speech_detected_ = true;
+                    esp_timer_stop(chibi_silence_timer_);
+                } else if (chibi_speech_detected_) {
+                    esp_timer_stop(chibi_silence_timer_);
+                    ESP_ERROR_CHECK(esp_timer_start_once(chibi_silence_timer_, 1200 * 1000));
+                }
+#endif
             }
         }
+#ifdef CONFIG_MODESP32_CUSTOM_AGENT
+        if (bits & MAIN_EVENT_CHIBI_SILENCE_TIMEOUT) {
+            if (GetDeviceState() == kDeviceStateListening &&
+                chibi_speech_detected_ && !audio_service_.IsVoiceDetected()) {
+                ESP_LOGI(TAG, "Chibi: detected end of utterance (1200ms silence)");
+                HandleStopListeningEvent();
+            }
+        }
+#endif
 
         if (bits & MAIN_EVENT_SCHEDULE) {
             std::unique_lock<std::mutex> lock(mutex_);
@@ -297,6 +336,14 @@ void Application::Run() {
 
         if (bits & MAIN_EVENT_CLOCK_TICK) {
             clock_ticks_++;
+#ifdef CONFIG_MODESP32_CUSTOM_AGENT
+            // Fail-safe: a missing VAD end event must never leave the screen
+            // listening forever. Preserve first ~15 seconds for long utterances.
+            if (GetDeviceState() == kDeviceStateListening && clock_ticks_ >= 15) {
+                ESP_LOGW(TAG, "Chibi: maximum listening duration reached");
+                HandleStopListeningEvent();
+            }
+#endif
             auto display = Board::GetInstance().GetDisplay();
             display->UpdateStatusBar();
 
@@ -1046,6 +1093,12 @@ void Application::HandleStateChangedEvent() {
     // Any state change invalidates a pending deferred listening start;
     // the Listening case below re-arms it when needed.
     pending_listening_start_ = false;
+#ifdef CONFIG_MODESP32_CUSTOM_AGENT
+    chibi_speech_detected_ = false;
+    if (chibi_silence_timer_) {
+        esp_timer_stop(chibi_silence_timer_);
+    }
+#endif
 
     auto& board = Board::GetInstance();
     auto display = board.GetDisplay();
@@ -1302,7 +1355,13 @@ void Application::SetListeningMode(ListeningMode mode) {
 }
 
 ListeningMode Application::GetDefaultListeningMode() const {
+#ifdef CONFIG_MODESP32_CUSTOM_AGENT
+    // Chibi uses one request/response per wake/button activation. AutoStop
+    // would put the screen straight back into Listening after TTS finishes.
+    return kListeningModeManualStop;
+#else
     return aec_mode_ == kAecOff ? kListeningModeAutoStop : kListeningModeRealtime;
+#endif
 }
 
 void Application::Reboot() {
