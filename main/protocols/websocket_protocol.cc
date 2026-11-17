@@ -83,7 +83,7 @@ bool WebsocketProtocol::OpenAudioChannel() {
 #ifdef CONFIG_MODESP32_CUSTOM_AGENT
     // Never inherit XiaoZhi's saved server URL or authorization token.
     url = CONFIG_MODESP32_AGENT_WS_URL;
-    token.clear();
+    token = CONFIG_MODESP32_AGENT_TOKEN;
     if (url.empty() ||
         !(url.rfind("wss://", 0) == 0 || url.rfind("ws://", 0) == 0)) {
         ESP_LOGE(TAG, "Missing/invalid custom agent endpoint; no XiaoZhi fallback");
@@ -93,9 +93,15 @@ bool WebsocketProtocol::OpenAudioChannel() {
     ESP_LOGI(TAG, "Connecting to configured ModESP32 agent");
 #endif
     int version = settings.GetInt("version");
+#ifdef CONFIG_MODESP32_CUSTOM_AGENT
+    // The private Chibi gateway implements XiaoZhi WebSocket protocol v1.
+    // Do not inherit a persisted protocol v2 setting from the previous backend.
+    version_ = 1;
+#else
     if (version != 0) {
         version_ = version;
     }
+#endif
 
     error_occurred_ = false;
 
