@@ -17,6 +17,8 @@
 #include <cstdint>
 #include "board.h"
 #include "chibi_face_b64.h"
+#include "chibi_agent_profile.h"
+#include "mcp_server.h"
 #include "jpeg_to_image.h"
 #include <mbedtls/base64.h>
 #include <vector>
@@ -213,6 +215,21 @@ private:
     esp_lcd_touch_handle_t touch_ = nullptr;
     lv_indev_t* indev_ = nullptr;
 
+    void InitializeChibiAgentTools() {
+        // The backend decides when to call this tool. It exposes a complete
+        // persona but does not pretend to override XiaoZhi's system prompt.
+        McpServer::GetInstance().AddTool(
+            "self.get_chibi_agent_profile",
+            "Read the local Chibi Vietnamese assistant persona and supported voice preference. "
+            "Call at the beginning of a session if the cloud agent is configured to personalize "
+            "this ModESP32 device. This tool cannot change the cloud agent or TTS voice itself.",
+            PropertyList(),
+            [](const PropertyList&) -> ToolResult {
+                return std::string(kChibiAgentProfile);
+            });
+        ESP_LOGI(TAG, "CHIBI_AGENT_PROFILE_MCP_READY (cloud must opt in)");
+    }
+
     static void TouchEvent(lv_event_t* event) {
         auto* indev = static_cast<lv_indev_t*>(lv_event_get_target(event));
         if (!indev) return;
@@ -310,6 +327,7 @@ private:
 public:
     ModEsp32S3TouchBoard() : boot_button_(BOOT_BUTTON_GPIO) {
         InitializeDisplayAndTouch();
+        InitializeChibiAgentTools();
         boot_button_.OnClick([this]() {
             auto& app = Application::GetInstance();
             if (app.GetDeviceState() == kDeviceStateStarting) {
