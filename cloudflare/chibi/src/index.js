@@ -98,21 +98,26 @@ function agentSession(ws, env) {
     if (busy || !frames.length) { reset(); return; }
     busy = true;
     const utterance = frames; frames = []; size = 0; listening = false;
+    let stage = "audio";
     try {
       // Gemini can accept an actual Ogg/Opus container, not raw WebSocket Opus frames.
       const ogg = muxOgg(utterance, frameMs);
+      stage = "speech-to-text";
       const transcript = await gemini(env, [
         {text: "Chép lại nguyên văn lời nói tiếng Việt trong âm thanh sau. Chỉ trả về nội dung được nói, có dấu."},
         {inlineData: {mimeType: "audio/ogg", data: toB64(ogg)}}
       ]);
       reply(ws, sid, "stt", {text: transcript});
+      stage = "chat";
       const answer = await gemini(env, [{text: "Người dùng nói: " + transcript + "\nHãy trả lời."}]);
       // Only announce speech once Gemini has successfully generated real PCM.
       // Failed TTS must not emit a synthetic success / fake Opus payload.
+      stage = "text-to-speech";
       const pcm = await synthesizeGemini(env, answer);
       reply(ws, sid, "tts", {state: "start"});
       reply(ws, sid, "tts", {state: "sentence_start", text: answer});
       try {
+        stage = "opus-encoder";
         await encodeOpus24k(pcm, async (packet) => {
           ws.send(packet);
           // Bound buffering and let network writes progress.
@@ -123,7 +128,10 @@ function agentSession(ws, env) {
       }
     } catch (error) {
       console.error("Chibi turn failed", String(error));
-      reply(ws, sid, "alert", {status: "Chibi", message: "Lỗi Gemini/TTS; kiểm tra quota, model và log Cloudflare.", emotion: "sad"});
+      const reason = error instanceof Error ? error.message : "unknown";
+      // Restrict diagnostics to model HTTP code / codec stage. Never show secrets or prompts.
+      const safe = /^(Gemini (TTS )?HTTP \d+|Gemini TTS returned no audio|Only PCM16|Expected 24kHz|Unexpected audio MIME|Invalid WAV|Truncated WAV|Incomplete WAV|No PCM)/.test(reason) ? reason : "internal error";
+      reply(ws, sid, "alert", {status: "Chibi", message: stage + ": " + safe, emotion: "sad"});
     } finally { busy = false; }
   }
   ws.addEventListener("message", (event) => {
