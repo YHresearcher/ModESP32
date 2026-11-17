@@ -43,7 +43,7 @@ async function getManifest(fetcher, assets, request, profile) {
       if (response.ok) {
         const item = await response.json();
         if (item.encoding === "base64" && typeof item.content === "string" && item.size < 8192) {
-          const bytes = Uint8Array.from(atob(item.content.replace(/\\s/g,"")), c => c.charCodeAt(0));
+          const bytes = Uint8Array.from(atob(item.content.replace(/\s/g,"")), c => c.charCodeAt(0));
           const m = JSON.parse(new TextDecoder().decode(bytes));
           if (valid(m,profile)) return m;
         }
