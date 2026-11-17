@@ -74,7 +74,7 @@ jobs:
           node -e 'process.stdout.write(JSON.stringify({GEMINI_API_KEY:process.env.GEMINI_API_KEY,CHIBI_DEVICE_TOKEN:process.env.CHIBI_DEVICE_TOKEN}))' \
             | npx wrangler secret bulk
 
-      - name: Smoke test Opus WASM codec on live Cloudflare Worker
+      - name: Smoke test precompiled Opus WASM on Workers Free
         working-directory: cloudflare/chibi
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
