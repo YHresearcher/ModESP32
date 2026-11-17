@@ -80,6 +80,18 @@ bool WebsocketProtocol::OpenAudioChannel() {
     Settings settings("websocket", false);
     std::string url = settings.GetString("url");
     std::string token = settings.GetString("token");
+#ifdef CONFIG_MODESP32_CUSTOM_AGENT
+    // Never inherit XiaoZhi's saved server URL or authorization token.
+    url = CONFIG_MODESP32_AGENT_WS_URL;
+    token.clear();
+    if (url.empty() ||
+        !(url.rfind("wss://", 0) == 0 || url.rfind("ws://", 0) == 0)) {
+        ESP_LOGE(TAG, "Missing/invalid custom agent endpoint; no XiaoZhi fallback");
+        error_occurred_ = true;
+        return false;
+    }
+    ESP_LOGI(TAG, "Connecting to configured ModESP32 agent");
+#endif
     int version = settings.GetInt("version");
     if (version != 0) {
         version_ = version;
