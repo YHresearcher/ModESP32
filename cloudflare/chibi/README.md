@@ -1,12 +1,12 @@
-# Chibi Cloudflare Workers Free — Stage 1
+# Chibi Cloudflare Workers Free — Voice V1 experimental
 
-This is a **working-code prototype**, not a deployed voice assistant. It contains:
+This is a **voice-enabled prototype**. The earlier text-only Worker was deployed; the Opus TTS upgrade still requires runtime validation on actual ESP32 hardware. It contains:
 - Token-protected WSS path `/ws` with the XiaoZhi WebSocket **v1** hello response.
 - Ogg/Opus muxing from ESP32's raw 16 kHz mono Opus frames (20/40/60 ms only).
 - Speech transcription and Vietnamese assistant reply using Gemini API.
-- The assistant's reply appears as `tts.sentence_start` text on devices supporting this protocol.
+- Gemini 2.5 Flash Preview TTS generates Vietnamese PCM; libopus-wasm encodes 24kHz mono Opus frames for the ESP32 speaker. The spoken reply also appears as `tts.sentence_start` text.
 
-**Not yet present:** Opus-encoded Vietnamese TTS playback, tested wake-word “Hey Chibi”, production-quality VAD, long conversation history, robust reconnect/timeout tests, real-device verification. The worker deliberately sends **no fake binary voice payload**. It only returns text until a compatible WASM Opus encoder is implemented.
+**Not yet validated:** TTS quota for the user's Gemini key, real ESP32 speaker playback, tested wake-word “Hey Chibi”, production-quality VAD, robust reconnect and Cloudflare Free CPU limits. The Worker does generate binary Opus frames, but live audio round-trip must still be tested.
 
 ## Run and deploy
 
@@ -45,7 +45,7 @@ Do not put secrets into a committed `sdkconfig`. The ESP32 must support TLS and 
 - Gemini audio and text are processed by Google. Free-tier limits vary and can change.
 - Cloudflare Workers Free CPU/request quota applies; audio buffering/encoding, API usage and concurrency may be constrained.
 - Raw packets are retained only in memory for the turn. No durable persistence is implemented.
-- No actual Cloudflare account access or secret provisioning has been performed by this PR.
+- Earlier Worker deployment exists, but this TTS-updated branch is not yet deployed until the workflow succeeds.
 
 ## Validation requirements
 
@@ -53,4 +53,5 @@ Do not put secrets into a committed `sdkconfig`. The ESP32 must support TLS and 
 2. Deploy to Cloudflare; verify `GET /health`.
 3. Test authenticated WS handshake; reject unauthenticated clients.
 4. Verify Gemini audio transcription and text response on recorded speech with real API key.
-5. **Before claiming complete voice assistant**, add and verify Opus TTS frames with ESP32 hardware.
+5. Verify Gemini TTS quota and capture Opus frames on the real ESP32 (24kHz mono), including end-of-speech behavior.
+6. Verify total Cloudflare Worker CPU time stays within Free limits; if it exceeds the limit, move audio transcoding to a separate free compute provider.
