@@ -3,10 +3,10 @@
   "tested": false,
   "board": "mod-esp32s3-ili9341-28",
   "chipFamily": "ESP32-S3",
-  "tag": "mod-esp32s3-ili9341-dev-84e2407f27f4",
-  "sourceSha": "84e2407f27f4d415671f094b6e9b600898cd35fe",
-  "publishedAt": "2026-11-17T05:27:30.855437+00:00",
+  "tag": "mod-esp32s3-ili9341-dev-67c425e65df7",
+  "sourceSha": "67c425e65df7642853f2585da70b2a1d692ace21",
+  "publishedAt": "2026-11-17T12:59:13.901210+00:00",
   "size": 9967589,
-  "sha256": "b24c0802678db5ddbbc1378c05e6810f9c71ce5e3c76a3f91eb02d03452440ef",
-  "releaseUrl": "https://github.com/YHresearcher/ModESP32/releases/tag/mod-esp32s3-ili9341-dev-84e2407f27f4"
+  "sha256": "1378900784c787e00cc4f3828df14ea628294d2662694153d8e3e5cecdf21caa",
+  "releaseUrl": "https://github.com/YHresearcher/ModESP32/releases/tag/mod-esp32s3-ili9341-dev-67c425e65df7"
 }
