@@ -1,0 +1,63 @@
+name: Deploy Chibi Cloudflare Worker
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chibi-cloudflare-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: chibi-cloudflare
+    defaults:
+      run:
+        working-directory: cloudflare/chibi
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required secrets
+        shell: bash
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DEVICE_TOKEN: ${{ secrets.CHIBI_DEVICE_TOKEN }}
+        run: |
+          set -euo pipefail
+          for key in CF_TOKEN CF_ACCOUNT GEMINI_KEY DEVICE_TOKEN; do
+            if [ -z "${!key}" ]; then
+              echo "::error::Missing secret: $key. Add required values to GitHub Actions environment chibi-cloudflare."
+              exit 1
+            fi
+          done
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: cloudflare/chibi/package-lock.json
+
+      - name: Install and test
+        run: |
+          npm ci --no-audit --no-fund
+          npm run check
+          npm test
+
+      - name: Deploy Worker and secrets
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: cloudflare/chibi
+          command: deploy
+          secrets: |
+            GEMINI_API_KEY
+            CHIBI_DEVICE_TOKEN
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CHIBI_DEVICE_TOKEN: ${{ secrets.CHIBI_DEVICE_TOKEN }}
