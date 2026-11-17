@@ -1,4 +1,4 @@
-name: ModESP32 Chibi AI v1.0 RC (ST7789V + Touch)
+name: ModESP32 Chibi AI v1.1 Voice Foundation (Face-only)
 
 on:
   workflow_dispatch:
@@ -94,8 +94,8 @@ jobs:
           gh release create "$TAG" merged-binary.bin SHA256SUMS \
             --repo "$GH_REPO" \
             --target "$SOURCE_SHA" \
-            --title "ModESP32 Chibi AI v1.0 RC — ${SOURCE_SHA:0:12}" \
-            --notes "Face-only UI candidate: ST7789V + XPT2046, locale vi-VN, ESP-SR WakeNet 'Hi ESP' test phrase (NOT Hey Chibi). Requires hardware microphone and display validation. Does not include a confirmed custom Chibi sprite nor cloud Vietnamese TTS. Source: $SOURCE_SHA. Experimental." \
+            --title "ModESP32 Chibi AI v1.1 Voice Foundation Preview — ${SOURCE_SHA:0:12}" \
+            --notes "Chibi AI v1.1 experimental: approved 160x162 JPEG face rendered as LVGL RGB565 with fallback; ST7789V + XPT2046, locale vi-VN, ESP-SR WakeNet Hi ESP. Microphone confirmed working by owner, but wake-word recognition, on-device face rendering, and Vietnamese cloud TTS have NOT been verified on the hardware. Not Hey Chibi. Source: $SOURCE_SHA. Prerelease only." \
             --prerelease --latest=false
 
       - name: Publish Development manifest for the Cloudflare Worker
