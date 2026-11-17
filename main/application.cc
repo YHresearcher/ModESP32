@@ -1,4 +1,5 @@
 #include "application.h"
+#include "chibi_build_id.h"
 #include "assets.h"
 #include "assets/lang_config.h"
 #include "audio_codec.h"
@@ -89,8 +90,13 @@ void Application::Initialize() {
     // Setup the display
     auto display = board.GetDisplay();
     display->SetupUI();
-    // Print board name/version info
+    // Print board name/version info and identify this exact build.
+#ifdef CONFIG_MODESP32_CUSTOM_AGENT
+    ESP_LOGI(TAG, "Chibi firmware build: %s", CHIBI_BUILD_ID);
+    display->SetChatMessage("system", CHIBI_BUILD_ID);
+#else
     display->SetChatMessage("system", SystemInfo::GetUserAgent().c_str());
+#endif
 
     // Setup the audio service
     auto codec = board.GetAudioCodec();
