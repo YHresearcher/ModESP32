@@ -20,6 +20,9 @@
 #define DISPLAY_RST_PIN GPIO_NUM_14
 #define DISPLAY_WIDTH 240
 #define DISPLAY_HEIGHT 320
+// ST7789 display inversion: false = normal colors (fixes reported negative image).
+// If a different LCD revision needs inversion, change this single board setting.
+#define DISPLAY_COLOR_INVERT false
 #define DISPLAY_OFFSET_X 0
 #define DISPLAY_OFFSET_Y 0
 #define DISPLAY_SWAP_XY false
