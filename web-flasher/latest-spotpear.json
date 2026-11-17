@@ -3,9 +3,9 @@
   "tested": false,
   "board": "spotpear-box128-wireless-lab",
   "chipFamily": "ESP32-S3",
-  "tag": "spotpear-wireless-dev-1b6a5c5b86b7",
-  "sourceSha": "1b6a5c5b86b7a1c733dc979be89b044b5ad29cba",
-  "publishedAt": "2026-11-17T11:18:37.953065+00:00",
-  "size": 982496,
-  "sha256": "97acee6929b6a1e9cd748ab7c7b3d5a0fa8fe3ac8e2f4bbb88d445d342c72bd7"
+  "tag": "spotpear-wireless-dev-209f69570e50",
+  "sourceSha": "209f69570e50f33610a7726a265d79bc65cab879",
+  "publishedAt": "2026-11-17T11:54:35.706734+00:00",
+  "size": 1033456,
+  "sha256": "70b777082f3f5cd9d5780add2588c610c575f50598236de58c972192660d058a"
 }
