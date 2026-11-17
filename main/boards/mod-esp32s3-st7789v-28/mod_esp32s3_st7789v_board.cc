@@ -35,11 +35,11 @@ private:
             ESP_LOGW(TAG, "No valid LCD backlight output GPIO; verify LED power/wiring");
             return;
         }
-        gpio_config_t cfg = {};
-        cfg.pin_bit_mask = 1ULL << static_cast<unsigned>(gpio);
-        cfg.mode = GPIO_MODE_OUTPUT;
-        ESP_ERROR_CHECK(gpio_config(&cfg));
-        ESP_ERROR_CHECK(gpio_set_level(static_cast<gpio_num_t>(gpio), DISPLAY_BACKLIGHT_ACTIVE_LEVEL));
+        // gpio_set_direction avoids a compile-time 1ULL << GPIO_NUM_NC
+        // when the default board backlight pin is deliberately unassigned.
+        const auto pin = static_cast<gpio_num_t>(gpio);
+        ESP_ERROR_CHECK(gpio_set_direction(pin, GPIO_MODE_OUTPUT));
+        ESP_ERROR_CHECK(gpio_set_level(pin, DISPLAY_BACKLIGHT_ACTIVE_LEVEL));
     }
 #ifdef CONFIG_CHIBI_XPT2046_TOUCH
     void InitializeTouch() {
