@@ -3,10 +3,10 @@
   "tested": false,
   "board": "mod-esp32s3-st7789v-touch-28",
   "chipFamily": "ESP32-S3",
-  "tag": "mod-esp32s3-touch-dev-67c425e65df7",
-  "sourceSha": "67c425e65df7642853f2585da70b2a1d692ace21",
-  "publishedAt": "2026-11-17T12:59:43.929397+00:00",
+  "tag": "mod-esp32s3-touch-dev-11d479246898",
+  "sourceSha": "11d47924689867d3eb479882a1ca2f46a8339cbe",
+  "publishedAt": "2026-11-17T13:24:39.927224+00:00",
   "size": 9967589,
-  "sha256": "4ee0acfa4505f7142134b7418f42e5c154982826cf3a7d9b6c0e0721d0604e8d",
-  "releaseUrl": "https://github.com/YHresearcher/ModESP32/releases/tag/mod-esp32s3-touch-dev-67c425e65df7"
+  "sha256": "f6644c8d967a374f4b804e4357c787a8380f1fb77e9c1c09334a6f5c7ae4c55f",
+  "releaseUrl": "https://github.com/YHresearcher/ModESP32/releases/tag/mod-esp32s3-touch-dev-11d479246898"
 }
