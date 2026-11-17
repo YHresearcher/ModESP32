@@ -69,7 +69,7 @@ function toB64(bytes) {
 }
 async function gemini(env, parts, options = {}) {
   if (!env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is missing");
-  const model = env.GEMINI_MODEL || "gemini-2.5-flash";
+  const model = env.GEMINI_MODEL || "gemini-3.8-flash";
   const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
     method: "POST",
     headers: {"Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY},
