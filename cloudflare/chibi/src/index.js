@@ -137,23 +137,26 @@ function agentSession(ws, env) {
       // Failed TTS must not emit a synthetic success / fake Opus payload.
       stage = "text-to-speech";
       const pcm = await synthesizeGemini(env, answer);
+      // Encode before announcing speech: if WASM fails on Workers Free,
+      // report the actual codec stage, not a false 'tts stop' success.
+      stage = "opus-encoder";
+      const opusFrames = [];
+      await encodeOpus24k(pcm, (packet) => { opusFrames.push(packet); });
+      if (!opusFrames.length) throw new Error("Opus encoder returned no frames");
       reply(ws, sid, "tts", {state: "start"});
       reply(ws, sid, "tts", {state: "sentence_start", text: answer});
-      try {
-        stage = "opus-encoder";
-        await encodeOpus24k(pcm, async (packet) => {
-          ws.send(packet);
-          // Bound buffering and let network writes progress.
-          if (ws.bufferedAmount > 128000) await new Promise(r => setTimeout(r, 25));
-        });
-      } finally {
-        reply(ws, sid, "tts", {state: "stop"});
+      for (const packet of opusFrames) {
+        ws.send(packet);
+        if (ws.bufferedAmount > 128000) await new Promise(r => setTimeout(r, 25));
       }
+      reply(ws, sid, "tts", {state: "stop"});
     } catch (error) {
       console.error("Chibi turn failed", String(error));
       const reason = error instanceof Error ? error.message : "unknown";
       // Restrict diagnostics to model HTTP code / codec stage. Never show secrets or prompts.
-      const safe = /^(Gemini (TTS )?HTTP \d+|Gemini TTS returned no audio|Only PCM16|Expected 24kHz|Unexpected audio MIME|Invalid WAV|Truncated WAV|Incomplete WAV|No PCM)/.test(reason) ? reason : "internal error";
+      const safe = stage === "opus-encoder" 
+        ? reason.replace(/[\r\n]/g, " ").slice(0, 120)
+        : /^(Gemini (TTS )?HTTP \d+|Gemini TTS returned no audio|Only PCM16|Expected 24kHz|Unexpected audio MIME|Invalid WAV|Truncated WAV|Incomplete WAV|No PCM)/.test(reason) ? reason : "internal error";
       reply(ws, sid, "alert", {status: "Chibi", message: stage + ": " + safe, emotion: "sad"});
     } finally { busy = false; }
   }
