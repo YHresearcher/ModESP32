@@ -11,9 +11,13 @@ Independent ESP-IDF subproject inside **YHresearcher/ModESP32**. The XiaoZhi fir
 
 No deauth flood, beacon spam, identity spoofing or third-party access. Use only with systems you own or are authorized to test.
 
-## Critical limitation
+## LCD bring-up (experimental)
 
-This is a **USB-console-first integration baseline**, not a fully validated Spotpear BOX GUI firmware. It does not yet initialize the GC9A01 round LCD, buttons, speaker, microphone or microSD. Those require confirmed board revision and separate testing. Build success is not hardware validation.
+This build initializes a 240×240 **GC9A01** round LCD at boot, then draws a standalone **SPOTPEAR / WIRELESS LAB / USB READY** splash screen. Reference Spotpear ESP32-S3 BOX pin mapping: MOSI=GPIO2, SCLK=GPIO4, CS=GPIO5, DC=GPIO47, RST=GPIO38 and backlight=GPIO42 (active-low). Display uses the Espressif `esp_lcd_gc9a01` component and SPI3 at 20 MHz. These pins are not universal for ESP32-S3 round-screen devices; verify your board revision first.
+
+**Important:** This is an LCD hardware test and USB console firmware, not yet a two-button menu. It does not implement buttons, speaker, microphone or microSD. Appearance, color order, backlight polarity and physical function still require testing on the actual board. Build success is not hardware validation.
+
+USB console commands (`help`, `wifi`, `ble`, `ap`, `advertise`, `stop`) now use interrupt-driven USB Serial/JTAG RX and log `Command received: ...` when Enter terminates a command. If the LCD fails, the firmware should report `LCD init failed` on USB and continue radio initialization.
 
 ## Build
 
