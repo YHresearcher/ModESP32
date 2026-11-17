@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Read-only deployment preflight for Chibi Cloud. No keys or secrets printed.
 set -u
-PROJECT="${1:-bidding-system-508101}"
+PROJECT="${1:-esp32-515005}"
 REGION="asia-southeast1"
 echo "=== Chibi Cloud preflight ($PROJECT) ==="
 if ! command -v gcloud >/dev/null 2>&1; then
