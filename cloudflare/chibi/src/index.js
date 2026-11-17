@@ -180,3 +180,5 @@ export default {
     return new Response(null, {status:101, webSocket:client});
   }
 };
+
+export { muxOgg, checksum, opusHead, opusTags };
