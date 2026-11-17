@@ -1,6 +1,10 @@
 name: Deploy Chibi Cloudflare Worker
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/chibi-cloudflare-deploy.yml'
 
 permissions:
   contents: read
@@ -47,6 +51,7 @@ jobs:
           npm install --no-audit --no-fund
           npm run check
           npm test
+          npm run bundle
 
       - name: Deploy Worker first
         uses: cloudflare/wrangler-action@v4
