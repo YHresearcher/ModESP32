@@ -28,15 +28,18 @@ private:
     lv_indev_t* touch_indev_ = nullptr;
 #endif
     void InitializeBacklight() {
-        if (DISPLAY_BACKLIGHT_GPIO == GPIO_NUM_NC) {
-            ESP_LOGW(TAG, "No LCD backlight GPIO configured; verify LED power/wiring");
+        // Avoid a compile-time negative shift when GPIO_NUM_NC (-1) is used
+        // on boards whose backlight is powered externally.
+        const int gpio = static_cast<int>(DISPLAY_BACKLIGHT_GPIO);
+        if (gpio < 0 || gpio >= 64 || !GPIO_IS_VALID_OUTPUT_GPIO(gpio)) {
+            ESP_LOGW(TAG, "No valid LCD backlight output GPIO; verify LED power/wiring");
             return;
         }
         gpio_config_t cfg = {};
-        cfg.pin_bit_mask = 1ULL << DISPLAY_BACKLIGHT_GPIO;
+        cfg.pin_bit_mask = 1ULL << static_cast<unsigned>(gpio);
         cfg.mode = GPIO_MODE_OUTPUT;
         ESP_ERROR_CHECK(gpio_config(&cfg));
-        ESP_ERROR_CHECK(gpio_set_level(DISPLAY_BACKLIGHT_GPIO, DISPLAY_BACKLIGHT_ACTIVE_LEVEL));
+        ESP_ERROR_CHECK(gpio_set_level(static_cast<gpio_num_t>(gpio), DISPLAY_BACKLIGHT_ACTIVE_LEVEL));
     }
 #ifdef CONFIG_CHIBI_XPT2046_TOUCH
     void InitializeTouch() {
