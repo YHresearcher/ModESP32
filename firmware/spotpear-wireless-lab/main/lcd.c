@@ -59,8 +59,9 @@ static const uint8_t *glyph_for(char c) {
         if(font[i].ch==c) return font[i].col;
     return font[sizeof(font)/sizeof(font[0])-1].col;
 }
+static inline uint16_t spi_rgb565(uint16_t color) { return (uint16_t)((color << 8) | (color >> 8)); }
 static void pixel(int x,int y,uint16_t color) {
-    if (x>=0 && y>=0 && x<LCD_W && y<LCD_H) framebuffer[y*LCD_W+x]=color;
+    if (x>=0 && y>=0 && x<LCD_W && y<LCD_H) framebuffer[y*LCD_W+x]=spi_rgb565(color);
 }
 static void filled_circle(int cx,int cy,int r,uint16_t color) {
     for (int y=-r;y<=r;++y) {
@@ -134,7 +135,7 @@ esp_err_t spotpear_lcd_show_home(void) {
     const uint16_t bg=RGB565(10,22,37), outer=RGB565(24,49,69),
                    bright=RGB565(44,218,166), white=RGB565(239,247,251),
                    muted=RGB565(137,176,193);
-    for(int i=0;i<LCD_W*LCD_H;++i)framebuffer[i]=bg;
+    for(int i=0;i<LCD_W*LCD_H;++i)framebuffer[i]=spi_rgb565(bg);
     filled_circle(120,120,116,outer);
     filled_circle(120,120,110,bg);
     filled_circle(120,75,24,bright);
@@ -144,8 +145,7 @@ esp_err_t spotpear_lcd_show_home(void) {
     center_text("WIRELESS LAB",137,1,bright);
     center_text("WIFI  BLE",165,1,muted);
     center_text("USB READY",185,1,white);
-    // RGB565 color data is SPI-transferred in big-endian byte order.
-    // esp_lcd_panel_swap_xy and panel color order are set during initialization.
+    // RGB565 values are byte-swapped in the buffer for MSB-first LCD SPI transfer.
     ESP_RETURN_ON_ERROR(esp_lcd_panel_draw_bitmap(panel,0,0,LCD_W,LCD_H,framebuffer),TAG,"LCD draw");
     ESP_RETURN_ON_ERROR(gpio_set_level(LCD_PIN_BL,0),TAG,"BL on");
     ESP_LOGI(TAG,"LCD_HOME_SHOWN");
