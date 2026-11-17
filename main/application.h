@@ -38,6 +38,7 @@
 #define MAIN_EVENT_PLAYBACK_DRAINED     (1 << 13)
 #define MAIN_EVENT_STARTUP_HINT_TIMEOUT (1 << 14)
 #define MAIN_EVENT_PROTOCOL_PENDING (1 << 15)
+#define MAIN_EVENT_CHIBI_SILENCE_TIMEOUT (1 << 16)
 
 enum AecMode {
     kAecOff,
@@ -138,6 +139,10 @@ private:
     EventGroupHandle_t event_group_ = nullptr;
     esp_timer_handle_t clock_timer_handle_ = nullptr;
     esp_timer_handle_t startup_wake_word_hint_timer_ = nullptr;
+#ifdef CONFIG_MODESP32_CUSTOM_AGENT
+    esp_timer_handle_t chibi_silence_timer_ = nullptr;
+    bool chibi_speech_detected_ = false;
+#endif
     DeviceStateMachine state_machine_;
     ListeningMode listening_mode_ = kListeningModeAutoStop;
     AecMode aec_mode_ = kAecOff;

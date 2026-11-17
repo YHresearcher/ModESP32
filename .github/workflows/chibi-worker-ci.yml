@@ -1,0 +1,27 @@
+name: Chibi Cloudflare Worker CI
+on:
+  pull_request:
+    paths:
+      - 'cloudflare/chibi/**'
+      - '.github/workflows/chibi-worker-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'cloudflare/chibi/**'
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: cloudflare/chibi
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: node scripts/inspect-codec.mjs
+      - run: npm run check
+      - run: npm test
+      - run: npm run bundle

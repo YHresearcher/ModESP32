@@ -10,6 +10,12 @@
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_ops.h>
 #include <driver/spi_common.h>
+#include <driver/gpio.h>
+#ifdef CONFIG_CHIBI_XPT2046_TOUCH
+#include <esp_lcd_touch_xpt2046.h>
+#include <esp_lvgl_port.h>
+#include <lvgl.h>
+#endif
 
 #define TAG "ModEsp32S3St7789v"
 
@@ -17,6 +23,52 @@ class ModEsp32S3St7789vBoard : public WifiBoard {
 private:
     Button boot_button_;
     LcdDisplay* display_ = nullptr;
+#ifdef CONFIG_CHIBI_XPT2046_TOUCH
+    esp_lcd_touch_handle_t touch_ = nullptr;
+    lv_indev_t* touch_indev_ = nullptr;
+#endif
+    void InitializeBacklight() {
+        // Avoid a compile-time negative shift when GPIO_NUM_NC (-1) is used
+        // on boards whose backlight is powered externally.
+        const int gpio = static_cast<int>(DISPLAY_BACKLIGHT_GPIO);
+        if (gpio < 0 || gpio >= 64 || !GPIO_IS_VALID_OUTPUT_GPIO(gpio)) {
+            ESP_LOGW(TAG, "No valid LCD backlight output GPIO; verify LED power/wiring");
+            return;
+        }
+        // gpio_set_direction avoids a compile-time 1ULL << GPIO_NUM_NC
+        // when the default board backlight pin is deliberately unassigned.
+        const auto pin = static_cast<gpio_num_t>(gpio);
+        ESP_ERROR_CHECK(gpio_set_direction(pin, GPIO_MODE_OUTPUT));
+        ESP_ERROR_CHECK(gpio_set_level(pin, DISPLAY_BACKLIGHT_ACTIVE_LEVEL));
+    }
+#ifdef CONFIG_CHIBI_XPT2046_TOUCH
+    void InitializeTouch() {
+        // Use existing LCD SPI2 bus. Resistive touch refresh is handled
+        // by esp_lvgl_port; do not block the audio/GUI task with touch reads.
+        esp_lcd_panel_io_spi_config_t tp_io_cfg =
+            ESP_LCD_TOUCH_IO_SPI_XPT2046_CONFIG(TOUCH_SPI_CS_PIN);
+        esp_lcd_panel_io_handle_t tp_io = nullptr;
+        ESP_ERROR_CHECK(esp_lcd_new_panel_io_spi(SPI2_HOST, &tp_io_cfg, &tp_io));
+        esp_lcd_touch_config_t tp_cfg = {};
+        tp_cfg.x_max = DISPLAY_WIDTH;
+        tp_cfg.y_max = DISPLAY_HEIGHT;
+        tp_cfg.rst_gpio_num = GPIO_NUM_NC;
+        tp_cfg.int_gpio_num = TOUCH_IRQ_PIN;
+        tp_cfg.flags.swap_xy = DISPLAY_SWAP_XY;
+        tp_cfg.flags.mirror_x = DISPLAY_MIRROR_X;
+        tp_cfg.flags.mirror_y = DISPLAY_MIRROR_Y;
+        ESP_ERROR_CHECK(esp_lcd_touch_new_spi_xpt2046(tp_io, &tp_cfg, &touch_));
+        lvgl_port_touch_cfg_t touch_cfg = {};
+        touch_cfg.disp = lv_display_get_default();
+        touch_cfg.handle = touch_;
+        touch_indev_ = lvgl_port_add_touch(&touch_cfg);
+        if (touch_indev_ == nullptr) {
+            ESP_LOGE(TAG, "Failed to register touch input");
+        } else {
+            ESP_LOGI(TAG, "XPT2046 touch registered; verify calibration/orientation");
+        }
+    }
+#endif
 
     void InitializeDisplay() {
         spi_bus_config_t bus = {};
@@ -47,14 +99,31 @@ private:
         ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(io, &panel_cfg, &panel));
         ESP_ERROR_CHECK(esp_lcd_panel_reset(panel));
         ESP_ERROR_CHECK(esp_lcd_panel_init(panel));
-        ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel, true));
+        ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel, 
+#ifdef CONFIG_CHIBI_LCD_INVERT
+            true
+#else
+            false
+#endif
+        ));
         ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel, DISPLAY_SWAP_XY));
         ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y));
         ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel, true));
         display_ = new SpiLcdDisplay(io, panel,
             DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_OFFSET_X, DISPLAY_OFFSET_Y,
             DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y, DISPLAY_SWAP_XY);
-        ESP_LOGI(TAG, "ST7789V panel initialized; resistive touch not enabled yet");
+        InitializeBacklight();
+#ifdef CONFIG_CHIBI_XPT2046_TOUCH
+        InitializeTouch();
+#endif
+        ESP_LOGI(TAG, "ST7789V panel initialized; backlight pin=%d touch=%d",
+                 static_cast<int>(DISPLAY_BACKLIGHT_GPIO),
+#ifdef CONFIG_CHIBI_XPT2046_TOUCH
+                 1
+#else
+                 0
+#endif
+        );
     }
 
 public:

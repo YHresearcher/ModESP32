@@ -1,0 +1,37 @@
+name: Chibi ESP32-S3 Custom Agent Firmware CI
+on:
+  pull_request:
+    paths:
+      - "main/Kconfig.projbuild"
+      - "main/protocols/websocket_protocol.cc"
+      - "main/boards/mod-esp32s3-st7789v-28/**"
+      - ".github/workflows/chibi-firmware-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    container: espressif/idf:release-v6.1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Chibi ESP32-S3 N16R8 (no secrets)
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$IDF_PATH/export.sh"
+          python scripts/build.py mod-esp32s3-st7789v-28 --name mod-esp32s3-st7789v-28-chibi-cloud
+      - name: Verify no credential in committed build options
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          c=json.loads(Path("main/boards/mod-esp32s3-st7789v-28/config.json").read_text())
+          item=next(x for x in c["builds"] if x["name"].endswith("-chibi-cloud"))
+          assert all("MODESP32_AGENT_TOKEN" not in x for x in item["sdkconfig_append"])
+          print("Public build config contains no private bearer token.")
+          PY

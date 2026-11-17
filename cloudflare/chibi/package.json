@@ -1,0 +1,20 @@
+{
+  "name": "chibi-cloudflare-gateway",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "node --check src/index.js && node --check src/tts.js && node --check src/entry.js && node --check scripts/extract-wasm.mjs",
+    "test": "node --test",
+    "bundle": "node scripts/extract-wasm.mjs && wrangler deploy --dry-run --outdir .wrangler/dryrun",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0",
+    "ws": "^8.18.0"
+  },
+  "dependencies": {
+    "libopus-wasm": "^0.4.1"
+  }
+}

@@ -1,5 +1,20 @@
 menu "ModESP32 Assistant"
 
+config CHIBI_XPT2046_TOUCH
+    bool "Enable XPT2046 resistive touch (board wiring must be checked)"
+    depends on IDF_TARGET_ESP32S3
+    default n
+    help
+        Only enable on a verified module with XPT2046 and documented
+        TOUCH_SPI_CS_PIN and TOUCH_IRQ_PIN. Default OFF to avoid stealing pins.
+
+config CHIBI_LCD_INVERT
+    bool "Invert ST7789V LCD colors"
+    depends on IDF_TARGET_ESP32S3
+    default n
+    help
+        Turn ON only if the panel is negative/inverted with normal colors.
+
 config MODESP32_CUSTOM_AGENT
     bool "Use custom agent backend (disable XiaoZhi)"
     default n
@@ -15,6 +30,14 @@ config MODESP32_AGENT_WS_URL
         A full ws:// or wss:// URL. No secrets in URL.
         Invalid or empty endpoints are rejected.
 
+
+config MODESP32_AGENT_TOKEN
+    string "Custom agent bearer token"
+    depends on MODESP32_CUSTOM_AGENT
+    default ""
+    help
+        Token provisioned separately from firmware source control.
+        Do not commit sdkconfig containing secrets.
 
 config OTA_URL
     string "Default OTA URL"
