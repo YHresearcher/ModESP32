@@ -50,7 +50,7 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npm run check
-          node scripts/inspect-codec.mjs
+          node scripts/inspect-codec.mjs # inspect WASM package structure
           npm test
           npm run bundle
 
