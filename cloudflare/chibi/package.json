@@ -5,9 +5,9 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "check": "node --check src/index.js && node --check src/tts.js",
+    "check": "node --check src/index.js && node --check src/tts.js && node --check src/entry.js && node --check scripts/extract-wasm.mjs",
     "test": "node --test",
-    "bundle": "wrangler deploy --dry-run --outdir .wrangler/dryrun",
+    "bundle": "node scripts/extract-wasm.mjs && wrangler deploy --dry-run --outdir .wrangler/dryrun",
     "smoke": "node scripts/smoke.mjs"
   },
   "devDependencies": {
