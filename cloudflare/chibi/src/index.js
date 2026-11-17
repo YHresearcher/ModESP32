@@ -1,6 +1,5 @@
-// Chibi Cloudflare Free gateway (prototype): authenticated WebSocket v1 +
-// Opus packet -> Ogg mux -> Gemini Vietnamese speech understanding and chat.
-// TTS Opus output is NOT implemented; this Worker deliberately does not fake it.
+// Chibi Cloudflare Free: authenticated XiaoZhi-protocol v1 Opus voice gateway.
+import { synthesizeGemini, encodeOpus24k } from "./tts.js";
 const MAX_AUDIO_BYTES = 256_000;
 const MAX_FRAMES = 180; // up to 10.8s at 60ms per frame
 const SYSTEM = "Bạn là Chibi, trợ lý giọng nói trên ESP32. Trả lời bằng tiếng Việt có dấu, ngắn gọn, thân thiện, chính xác. Không tuyên bố đã làm gì nếu chưa thực hiện.";
@@ -108,16 +107,23 @@ function agentSession(ws, env) {
       ]);
       reply(ws, sid, "stt", {text: transcript});
       const answer = await gemini(env, [{text: "Người dùng nói: " + transcript + "\nHãy trả lời."}]);
+      // Only announce speech once Gemini has successfully generated real PCM.
+      // Failed TTS must not emit a synthetic success / fake Opus payload.
+      const pcm = await synthesizeGemini(env, answer);
       reply(ws, sid, "tts", {state: "start"});
       reply(ws, sid, "tts", {state: "sentence_start", text: answer});
-      // The ESP32 expects *binary Opus audio* to actually speak.
-      // Do not send raw PCM / MP3 as Opus. This is text-only until a validated
-      // Opus-WASM encoder and a Vietnamese TTS provider are integrated.
-      reply(ws, sid, "tts", {state: "stop"});
-      reply(ws, sid, "alert", {status: "Chibi", message: "Đã trả lời dạng chữ; giọng nói đang được phát triển."});
+      try {
+        await encodeOpus24k(pcm, async (packet) => {
+          ws.send(packet);
+          // Bound buffering and let network writes progress.
+          if (ws.bufferedAmount > 128000) await new Promise(r => setTimeout(r, 25));
+        });
+      } finally {
+        reply(ws, sid, "tts", {state: "stop"});
+      }
     } catch (error) {
       console.error("Chibi turn failed", String(error));
-      reply(ws, sid, "alert", {status: "Chibi", message: "Lỗi xử lý giọng nói. Kiểm tra cấu hình Gemini.", emotion: "sad"});
+      reply(ws, sid, "alert", {status: "Chibi", message: "Lỗi Gemini/TTS; kiểm tra quota, model và log Cloudflare.", emotion: "sad"});
     } finally { busy = false; }
   }
   ws.addEventListener("message", (event) => {
@@ -163,7 +169,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === "/health") {
-      return Response.json({service:"chibi-cloudflare", status:"ok", stage:"text-reply", voice_output:false});
+      return Response.json({service:"chibi-cloudflare", status:"ok", stage:"voice-enabled", voice_output:true});
     }
     if (url.pathname !== "/ws") return new Response("Not found", {status:404});
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
