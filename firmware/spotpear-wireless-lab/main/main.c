@@ -130,6 +130,7 @@ static void ble_test_adv(void) {
 }
 void app_main(void) {
     esp_err_t lcd_err = spotpear_lcd_init();
+    if (lcd_err == ESP_OK) lcd_err = spotpear_lcd_diagnostic();
     if (lcd_err == ESP_OK) lcd_err = spotpear_lcd_show_home();
     if (lcd_err != ESP_OK) ESP_LOGE(TAG, "LCD init failed: %s", esp_err_to_name(lcd_err));
     esp_err_t e = nvs_flash_init();
@@ -163,7 +164,7 @@ void app_main(void) {
     ESP_ERROR_CHECK(usb_serial_jtag_driver_install(&usb_cfg));
     usb_serial_jtag_vfs_use_driver();
     ESP_LOGI(TAG, "USB command RX ready (type help + Enter)");
-    ESP_LOGI(TAG, "Commands: wifi | ble | ap | advertise | stop | help");
+    ESP_LOGI(TAG, "Commands: wifi | ble | ap | advertise | stop | lcd | help");
     char cmd[32] = {0};
     size_t used = 0;
     while (true) {
@@ -186,7 +187,12 @@ void app_main(void) {
             }
             continue;
         } else continue;
-        if (strcmp(cmd, "wifi") == 0) wifi_scan();
+        if (strcmp(cmd, "lcd") == 0) {
+            esp_err_t result = spotpear_lcd_diagnostic();
+            if (result == ESP_OK) result = spotpear_lcd_show_home();
+            ESP_LOGI(TAG, "LCD_DIAG_COMMAND_RESULT: %s", esp_err_to_name(result));
+        }
+        else if (strcmp(cmd, "wifi") == 0) wifi_scan();
         else if (strcmp(cmd, "ble") == 0) ble_scan();
         else if (strcmp(cmd, "ap") == 0) wifi_test_ap();
         else if (strcmp(cmd, "advertise") == 0) ble_test_adv();

@@ -12,6 +12,8 @@
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_gc9a01.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "lcd.h"
 
 #define LCD_W 240
@@ -109,7 +111,7 @@ esp_err_t spotpear_lcd_init(void) {
     esp_lcd_panel_io_handle_t io=NULL;
     esp_lcd_panel_io_spi_config_t io_cfg={
       .dc_gpio_num=LCD_PIN_DC,.cs_gpio_num=LCD_PIN_CS,
-      .pclk_hz=20*1000*1000,.lcd_cmd_bits=8,.lcd_param_bits=8,
+      .pclk_hz=10*1000*1000,.lcd_cmd_bits=8,.lcd_param_bits=8,
       .spi_mode=0,.trans_queue_depth=2,
     };
     ESP_RETURN_ON_ERROR(esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)LCD_SPI_HOST,&io_cfg,&io),TAG,"panel io");
@@ -149,5 +151,38 @@ esp_err_t spotpear_lcd_show_home(void) {
     ESP_RETURN_ON_ERROR(esp_lcd_panel_draw_bitmap(panel,0,0,LCD_W,LCD_H,framebuffer),TAG,"LCD draw");
     ESP_RETURN_ON_ERROR(gpio_set_level(LCD_PIN_BL,0),TAG,"BL on");
     ESP_LOGI(TAG,"LCD_HOME_SHOWN");
+    return ESP_OK;
+}
+
+/*
+ * LCD Diagnostic V0.2: deterministic full-frame RGB565 tests without glyphs,
+ * GUI layers or any Wi-Fi dependencies. No panel readback on write-only SPI.
+ * Keep the same DMA-capable framebuffer alive across transfers and allow
+ * each async SPI transfer time to finish before changing its contents.
+ */
+esp_err_t spotpear_lcd_diagnostic(void) {
+    if (!panel || !framebuffer) return ESP_ERR_INVALID_STATE;
+    const struct { const char *name; uint16_t rgb; } tests[] = {
+        {"RED", RGB565(255, 0, 0)},
+        {"GREEN", RGB565(0, 255, 0)},
+        {"BLUE", RGB565(0, 0, 255)},
+        {"WHITE", RGB565(255, 255, 255)}
+    };
+    ESP_LOGI(TAG, "LCD_DIAG_BEGIN: SPI=10MHz mode=0 panel=GC9A01");
+    for (unsigned k = 0; k < sizeof(tests)/sizeof(tests[0]); ++k) {
+        const uint16_t value = spi_rgb565(tests[k].rgb);
+        for (int i = 0; i < LCD_W * LCD_H; ++i) framebuffer[i] = value;
+        ESP_LOGI(TAG, "LCD_DIAG_SEND: %s", tests[k].name);
+        esp_err_t e = esp_lcd_panel_draw_bitmap(panel, 0, 0, LCD_W, LCD_H, framebuffer);
+        if (e != ESP_OK) {
+            ESP_LOGE(TAG, "LCD_DIAG_FAILED: %s err=%s", tests[k].name, esp_err_to_name(e));
+            return e;
+        }
+        ESP_RETURN_ON_ERROR(gpio_set_level(LCD_PIN_BL, 0), TAG, "backlight on");
+        // 115200 bytes at 10 MHz is ~92 ms; leave margin for queued SPI DMA.
+        vTaskDelay(pdMS_TO_TICKS(1100));
+        ESP_LOGI(TAG, "LCD_DIAG_TX_SUBMITTED: %s (display not read back)", tests[k].name);
+    }
+    ESP_LOGI(TAG, "LCD_DIAG_DONE: four colors transmitted");
     return ESP_OK;
 }
