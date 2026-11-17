@@ -83,7 +83,7 @@ bool WebsocketProtocol::OpenAudioChannel() {
 #ifdef CONFIG_MODESP32_CUSTOM_AGENT
     // Never inherit XiaoZhi's saved server URL or authorization token.
     url = CONFIG_MODESP32_AGENT_WS_URL;
-    token.clear();
+    token = CONFIG_MODESP32_AGENT_TOKEN;
     if (url.empty() ||
         !(url.rfind("wss://", 0) == 0 || url.rfind("ws://", 0) == 0)) {
         ESP_LOGE(TAG, "Missing/invalid custom agent endpoint; no XiaoZhi fallback");
