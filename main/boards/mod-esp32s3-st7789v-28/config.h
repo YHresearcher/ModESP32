@@ -25,3 +25,10 @@
 #define DISPLAY_SWAP_XY false
 #define DISPLAY_MIRROR_X false
 #define DISPLAY_MIRROR_Y false
+
+// All optional LCD/touch pins are provisional until physical wiring confirmed.
+// A missing backlight GPIO must remain NC; never blindly drive a shared pin.
+#define DISPLAY_BACKLIGHT_GPIO GPIO_NUM_NC
+#define DISPLAY_BACKLIGHT_ACTIVE_LEVEL 1
+#define TOUCH_SPI_CS_PIN GPIO_NUM_9
+#define TOUCH_IRQ_PIN GPIO_NUM_7
