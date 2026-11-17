@@ -2,8 +2,7 @@ name: Spotpear Wireless Lab (isolated)
 on:
   workflow_dispatch:
   push:
-    branches:
-      - feature/spotpear-wireless-lab
+    branches: [main, feature/spotpear-wireless-lab]
     paths:
       - 'firmware/spotpear-wireless-lab/**'
       - '.github/workflows/spotpear-wireless-lab.yml'
@@ -27,24 +26,84 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
-      - name: Build Spotpear standalone ESP-IDF project
+      - name: Build independent Spotpear firmware
         run: |
           set -euo pipefail
           source "$IDF_PATH/export.sh"
           idf.py set-target esp32s3
           idf.py build
-      - name: Package experimental binaries
+      - name: Merge flash image using ESP-IDF generated offsets
         run: |
           set -euo pipefail
-          test -s build/spotpear_wireless_lab.bin
-          sha256sum build/*.bin > build/SHA256SUMS
-      - name: Upload CI-only artifact (NOT hardware validated)
+          source "$IDF_PATH/export.sh"
+          test -s build/flash_args
+          esptool.py --chip esp32s3 merge_bin -o build/merged-binary.bin @build/flash_args
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("build/merged-binary.bin")
+          data=p.read_bytes()
+          assert 65536 <= len(data) <= 16 * 1024 * 1024, "Unexpected image size"
+          assert data[0] == 0xe9, "ESP bootloader image missing at offset 0"
+          print(f"Spotpear merged firmware: {len(data)} bytes")
+          PY
+          (cd build && sha256sum merged-binary.bin > SHA256SUMS)
+      - name: Upload compiled image (not hardware-tested)
         uses: actions/upload-artifact@v4
         with:
-          name: spotpear-wireless-lab-experimental
+          name: spotpear-wireless-lab-merged
           path: |
-            firmware/spotpear-wireless-lab/build/*.bin
-            firmware/spotpear-wireless-lab/build/flasher_args.json
+            firmware/spotpear-wireless-lab/build/merged-binary.bin
             firmware/spotpear-wireless-lab/build/SHA256SUMS
+            firmware/spotpear-wireless-lab/build/flasher_args.json
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14
+
+  publish-development:
+    name: Publish Spotpear-only prerelease
+    needs: spotpear-build
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: spotpear-wireless-lab-merged
+          path: firmware
+      - name: Publish verified immutable development image and manifest
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cd firmware
+          test -s merged-binary.bin
+          sha256sum --check SHA256SUMS
+          TAG="spotpear-wireless-dev-${SOURCE_SHA:0:12}"
+          if ! gh release view "$TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release create "$TAG" merged-binary.bin SHA256SUMS \
+              --repo "$GH_REPO" --target "$SOURCE_SHA" \
+              --title "Spotpear Wireless Lab Development ${SOURCE_SHA:0:12}" \
+              --notes "USB-console experimental build for Spotpear ESP32-S3 N16R8. No GC9A01/buttons yet. Not hardware-validated. Do not use as stable firmware." \
+              --prerelease --latest=false
+          fi
+          export TAG IMAGE_SHA="$(sha256sum merged-binary.bin | cut -d' ' -f1)"
+          export IMAGE_SIZE="$(stat -c %s merged-binary.bin)"
+          python3 - <<'PY'
+          import json,os,datetime
+          meta={
+            "channel":"development","tested":False,
+            "board":"spotpear-box128-wireless-lab","chipFamily":"ESP32-S3",
+            "tag":os.environ["TAG"],"sourceSha":os.environ["SOURCE_SHA"],
+            "publishedAt":datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "size":int(os.environ["IMAGE_SIZE"]),"sha256":os.environ["IMAGE_SHA"]
+          }
+          with open("latest-spotpear.json","w") as f: json.dump(meta,f,indent=2)
+          PY
+          FILE="web-flasher/latest-spotpear.json"
+          CURRENT_SHA="$(gh api "repos/$GH_REPO/contents/$FILE" --jq .sha 2>/dev/null || true)"
+          args=(-f "message=chore(spotpear): update Development manifest for $TAG" -f "content=$(base64 -w0 latest-spotpear.json)")
+          if [ -n "$CURRENT_SHA" ]; then args+=(-f "sha=$CURRENT_SHA"); fi
+          gh api -X PUT "repos/$GH_REPO/contents/$FILE" "${args[@]}" >/dev/null
