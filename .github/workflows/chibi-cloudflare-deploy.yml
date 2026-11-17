@@ -48,16 +48,22 @@ jobs:
           npm run check
           npm test
 
-      - name: Deploy Worker and secrets
+      - name: Deploy Worker first
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: cloudflare/chibi
           command: deploy
-          secrets: |
-            GEMINI_API_KEY
-            CHIBI_DEVICE_TOKEN
+
+      - name: Set runtime secrets on deployed Worker
+        working-directory: cloudflare/chibi
         env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           CHIBI_DEVICE_TOKEN: ${{ secrets.CHIBI_DEVICE_TOKEN }}
+        run: |
+          set -euo pipefail
+          node -e 'process.stdout.write(JSON.stringify({GEMINI_API_KEY:process.env.GEMINI_API_KEY,CHIBI_DEVICE_TOKEN:process.env.CHIBI_DEVICE_TOKEN}))' \
+            | npx wrangler secret bulk
