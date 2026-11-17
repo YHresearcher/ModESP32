@@ -72,3 +72,27 @@ test("reject unknown controller and mismatched release tag",async()=>{
   const r=await handleFirmware(new Request("https://device.test/api/firmware/latest?display=unknown"),fetcher);
   assert.equal(r.status,400);
 });
+
+test("Spotpear accepts only matching short merged-image manifest",async()=>{
+  const spTag="spotpear-wireless-dev-aabbccddeeff";
+  const sp={...manifest,tag:spTag,sourceSha:"aabbccddeeff"+"0".repeat(28),
+    board:"spotpear-box128-wireless-lab",size:320000};
+  const fetchSp=async url=>{
+    if(url.endsWith("latest-spotpear.json"))return Response.json(sp);
+    if(url.includes("/releases/download/"))return new Response(new Uint8Array([0xe9,0,0,0]));
+    throw Error("Unexpected URL "+url);
+  };
+  const r=await handleFirmware(new Request("https://device.test/api/firmware/latest?display=spotpear"),fetchSp);
+  const data=await r.json();
+  assert.equal(r.status,200);
+  assert.equal(data.board,"spotpear-box128-wireless-lab");
+  assert.equal(data.display,"spotpear");
+  assert.equal(data.tested,false);
+  assert.equal(data.firmwareUrl,"/api/firmware/binary?tag="+spTag);
+  const bin=await handleFirmware(new Request("https://device.test/api/firmware/binary?tag="+spTag),fetchSp);
+  assert.equal(bin.status,200);
+});
+test("Spotpear never loads older display firmware",async()=>{
+  const r=await handleFirmware(new Request("https://device.test/api/firmware/latest?display=spotpear"),fetcher);
+  assert.equal(r.status,503);
+});
