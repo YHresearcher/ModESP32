@@ -16,6 +16,14 @@ config MODESP32_AGENT_WS_URL
         Invalid or empty endpoints are rejected.
 
 
+config MODESP32_AGENT_TOKEN
+    string "Custom agent bearer token"
+    depends on MODESP32_CUSTOM_AGENT
+    default ""
+    help
+        Token provisioned separately from firmware source control.
+        Do not commit sdkconfig containing secrets.
+
 config OTA_URL
     string "Default OTA URL"
     default "https://api.tenclass.net/xiaozhi/ota/"
