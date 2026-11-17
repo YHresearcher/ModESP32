@@ -16,6 +16,10 @@
 #include <cstring>
 #include <cstdint>
 #include "board.h"
+#include "chibi_face_b64.h"
+#include "jpeg_to_image.h"
+#include <mbedtls/base64.h>
+#include <vector>
 
 #define TAG "ModS3Touch"
 
@@ -25,11 +29,51 @@
 class TouchSpiDisplay : public SpiLcdDisplay {
 private:
     lv_obj_t* face_background_ = nullptr;
+    lv_obj_t* face_image_ = nullptr;
+    lv_image_dsc_t face_dsc_ = {};
+    uint8_t* face_rgb_ = nullptr;
     lv_obj_t* face_status_ = nullptr;
     lv_timer_t* face_timer_ = nullptr;
     DeviceState last_state_ = kDeviceStateUnknown;
     bool face_visible_ = false;
 
+    // Decode the approved JPEG once at boot. The decoded RGB565 data stays
+    // alive for LVGL; 160x162x2 = ~52 KiB, suitable for N16R8 PSRAM.
+    // If memory or JPEG decoding fails, use the upstream emoji renderer.
+    void SetupFaceImage(lv_obj_t* screen) {
+        const size_t b64_len = strlen(kChibiFaceJpegBase64);
+        std::vector<uint8_t> jpeg(b64_len * 3 / 4 + 8);
+        size_t jpeg_len = 0;
+        if (mbedtls_base64_decode(jpeg.data(), jpeg.size(), &jpeg_len,
+                                  reinterpret_cast<const unsigned char*>(kChibiFaceJpegBase64),
+                                  b64_len) != 0) {
+            ESP_LOGE(TAG, "CHIBI_ASSET_FAIL: base64");
+            return;
+        }
+        uint8_t* rgb = nullptr;
+        size_t rgb_len = 0, width = 0, height = 0, stride = 0;
+        if (jpeg_to_image(jpeg.data(), jpeg_len, &rgb, &rgb_len, &width,
+                          &height, &stride) != ESP_OK || !rgb) {
+            ESP_LOGE(TAG, "CHIBI_ASSET_FAIL: jpeg decoder");
+            return;
+        }
+        face_rgb_ = rgb;
+        face_dsc_.header.magic = LV_IMAGE_HEADER_MAGIC;
+        face_dsc_.header.cf = LV_COLOR_FORMAT_RGB565;
+        face_dsc_.header.w = static_cast<uint32_t>(width);
+        face_dsc_.header.h = static_cast<uint32_t>(height);
+        face_dsc_.header.stride = static_cast<uint32_t>(stride);
+        face_dsc_.data_size = rgb_len;
+        face_dsc_.data = face_rgb_;
+        face_image_ = lv_image_create(screen);
+        lv_image_set_src(face_image_, &face_dsc_);
+        lv_obj_align(face_image_, LV_ALIGN_CENTER, 0, -23);
+        lv_obj_remove_flag(face_image_, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_flag(face_image_, LV_OBJ_FLAG_HIDDEN);
+        ESP_LOGI(TAG, "CHIBI_ASSET_READY: %ux%u RGB565 bytes=%u",
+                 static_cast<unsigned>(width), static_cast<unsigned>(height),
+                 static_cast<unsigned>(rgb_len));
+    }
     static void Tick(lv_timer_t* timer) {
         auto* self = static_cast<TouchSpiDisplay*>(lv_timer_get_user_data(timer));
         if (self) self->UpdateFace();
@@ -47,10 +91,16 @@ private:
             if (show_face) {
                 lv_obj_remove_flag(face_background_, LV_OBJ_FLAG_HIDDEN);
                 lv_obj_move_foreground(face_background_);
-                // Keep the original emotion image/label visible above the
-                // face-only background; no fake LVGL robot assembled from boxes.
-                if (emoji_label_) { lv_obj_align(emoji_label_, LV_ALIGN_CENTER, 0, -20); lv_obj_move_foreground(emoji_label_); }
-                if (emoji_image_) { lv_obj_align(emoji_image_, LV_ALIGN_CENTER, 0, -20); lv_obj_move_foreground(emoji_image_); }
+                // Approved face takes precedence; original emotions are fallback.
+                if (face_image_) {
+                    lv_obj_remove_flag(face_image_, LV_OBJ_FLAG_HIDDEN);
+                    lv_obj_move_foreground(face_image_);
+                    if (emoji_label_) lv_obj_add_flag(emoji_label_, LV_OBJ_FLAG_HIDDEN);
+                    if (emoji_image_) lv_obj_add_flag(emoji_image_, LV_OBJ_FLAG_HIDDEN);
+                } else {
+                    if (emoji_label_) { lv_obj_align(emoji_label_, LV_ALIGN_CENTER, 0, -20); lv_obj_move_foreground(emoji_label_); }
+                    if (emoji_image_) { lv_obj_align(emoji_image_, LV_ALIGN_CENTER, 0, -20); lv_obj_move_foreground(emoji_image_); }
+                }
                 lv_obj_move_foreground(face_status_);
                 lv_obj_remove_flag(face_status_, LV_OBJ_FLAG_HIDDEN);
                 if (top_bar_) lv_obj_add_flag(top_bar_, LV_OBJ_FLAG_HIDDEN);
@@ -58,13 +108,20 @@ private:
                 if (content_) lv_obj_add_flag(content_, LV_OBJ_FLAG_HIDDEN);
             } else {
                 lv_obj_add_flag(face_background_, LV_OBJ_FLAG_HIDDEN);
+                if (face_image_) lv_obj_add_flag(face_image_, LV_OBJ_FLAG_HIDDEN);
                 if (face_status_) lv_obj_add_flag(face_status_, LV_OBJ_FLAG_HIDDEN);
                 if (top_bar_) lv_obj_remove_flag(top_bar_, LV_OBJ_FLAG_HIDDEN);
                 if (status_bar_) lv_obj_remove_flag(status_bar_, LV_OBJ_FLAG_HIDDEN);
                 if (content_) lv_obj_remove_flag(content_, LV_OBJ_FLAG_HIDDEN);
             }
         }
-        if (show_face) ShowEmotion(); // A chat message may have hidden the original emotion renderer.
+        if (show_face && face_image_) {
+            // A server emotion update may have re-exposed the default image.
+            if (emoji_label_) lv_obj_add_flag(emoji_label_, LV_OBJ_FLAG_HIDDEN);
+            if (emoji_image_) lv_obj_add_flag(emoji_image_, LV_OBJ_FLAG_HIDDEN);
+        } else if (show_face) {
+            ShowEmotion();
+        }
         if (state == last_state_) return;
         last_state_ = state;
         if (!face_status_) return;
@@ -77,6 +134,9 @@ private:
             default: break;
         }
         lv_label_set_text(face_status_, status);
+        lv_obj_set_style_text_color(face_status_,
+            lv_color_hex(state == kDeviceStateListening ? 0x4FFFE0 :
+                         state == kDeviceStateSpeaking ? 0xFFE3A6 : 0xC7E9FF), 0);
         ESP_LOGI("ChibiFace", "FACE_STATE=%d WAKE_PHRASE=Hi ESP; face-only prototype", (int)state);
     }
 public:
@@ -102,6 +162,7 @@ public:
         lv_obj_remove_flag(face_background_, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_remove_flag(face_background_, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_add_flag(face_background_, LV_OBJ_FLAG_HIDDEN);
+        SetupFaceImage(screen);
         // Hide the old three-button control panel. BOOT GPIO0 remains a
         // functional fallback if the microphone or wake model fails.
         face_status_ = lv_label_create(screen);
