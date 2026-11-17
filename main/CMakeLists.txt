@@ -1224,7 +1224,7 @@ if(NOT CHIBI_BUILD_COMMIT MATCHES "^[0-9a-fA-F]+$")
 endif()
 set(CHIBI_BUILD_ID "CHIBI-${CHIBI_BUILD_UTC}-${CHIBI_BUILD_COMMIT}")
 configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/chibi_build_id.h.in"
+    "${PROJECT_DIR}/main/chibi_build_id.h.in"
     "${CMAKE_CURRENT_BINARY_DIR}/chibi_build_id.h"
     @ONLY)
 message(STATUS "Chibi firmware build ID: ${CHIBI_BUILD_ID}")
