@@ -1,9 +1,10 @@
 """Chibi private voice gateway, XiaoZhi-compatible WebSocket protocol v1.
 
-Development use on a trusted LAN only. Requires ffmpeg and Python 3.11+.
-Do not expose the unauthenticated WebSocket port to the public internet.
+Development server with optional device bearer authentication. Requires ffmpeg and Python 3.11+.
+For a public cloud deployment set CHIBI_DEVICE_TOKEN and enable TLS (wss://).
 """
 import asyncio
+import hmac
 import io
 import json
 import logging
@@ -22,7 +23,8 @@ from websockets.asyncio.server import serve
 from websockets.exceptions import ConnectionClosed
 
 HOST = os.getenv("CHIBI_HOST", "127.0.0.1")
-PORT = int(os.getenv("CHIBI_PORT", "8765"))
+PORT = int(os.getenv("PORT", os.getenv("CHIBI_PORT", "8765")))
+DEVICE_TOKEN = os.getenv("CHIBI_DEVICE_TOKEN", "")
 MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 ASR_MODEL = os.getenv("WHISPER_MODEL", "base")
 VOICE = os.getenv("CHIBI_VOICE", "vi-VN-HoaiMyNeural")
@@ -154,6 +156,11 @@ async def process_turn(ws, s):
 
 
 async def handler(ws):
+    expected = "Bearer " + DEVICE_TOKEN
+    provided = ws.request.headers.get("Authorization", "")
+    if DEVICE_TOKEN and not hmac.compare_digest(provided, expected):
+        await ws.close(code=1008, reason="Unauthorized device")
+        return
     s = Session()
     peer = ws.remote_address
     log.info("Connected: %s", peer)
@@ -216,6 +223,8 @@ async def main():
     global asr
     log.info("Loading Whisper model %s", ASR_MODEL)
     asr = WhisperModel(ASR_MODEL, device="cpu", compute_type="int8")
+    if HOST == "0.0.0.0" and not DEVICE_TOKEN:
+        raise RuntimeError("CHIBI_DEVICE_TOKEN required on a public-facing listener")
     log.info("Starting Chibi on ws://%s:%d", HOST, PORT)
     async with serve(handler, HOST, PORT, max_size=2**20, ping_interval=20):
         await asyncio.Future()
