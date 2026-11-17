@@ -36,7 +36,15 @@ export function setupWiringUI({onDisplayChange}){
   }
   for(const btn of tabs){const selected=btn.dataset.tab===name;btn.classList.toggle("active",selected);btn.setAttribute("aria-selected",String(selected));}
  }
- tabs.forEach(btn=>btn.addEventListener("click",()=>showTab(btn.dataset.tab)));
+ tabs.forEach(btn=>btn.addEventListener("click",()=>{
+   showTab(btn.dataset.tab);
+   if(btn.dataset.tab==="spotpear")history.replaceState(null,"","#spotpear");
+ }));
+ function activateHashTab(){
+   if(location.hash.toLowerCase()==="#spotpear")showTab("spotpear");
+ }
+ window.addEventListener("hashchange",activateHashTab);
+ document.getElementById("spotpearQuickLink")?.addEventListener("click",()=>showTab("spotpear"));
  document.getElementById("goSerial").addEventListener("click",()=>showTab("serial"));
  function update(){
   const profile=DISPLAYS[select.value]||DISPLAYS.st7789v;
@@ -66,5 +74,6 @@ export function setupWiringUI({onDisplayChange}){
  select.addEventListener("change",update);
  showTab("flash");
  update();
+ activateHashTab();
  return {showTab};
 }
