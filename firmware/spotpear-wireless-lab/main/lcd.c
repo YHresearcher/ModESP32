@@ -1,5 +1,5 @@
 // Spotpear ESP32-S3 BOX 1.28" GC9A01 LCD bring-up (ESP-IDF 5.3).
-// Reference BOX pin map: MOSI 2, CLK 4, CS 5, DC 47, RST 38, BL 42 (active low).
+// SpotPear ESP32-AI-1.28 v1.0 (non-touch) pin map, NOT the BOX touchscreen.\n// Source: tomorrow56/xiaozhi-esp32 at fed7f146, main/boards/spotpear/spotpear-esp32-ai-1.28/config.h
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -91,14 +91,14 @@ static void center_text(const char *s,int y,int scale,uint16_t color) {
 esp_err_t spotpear_lcd_init(void) {
     ESP_LOGI(TAG,"Initializing GC9A01 SPI; MOSI=%d SCLK=%d CS=%d DC=%d RST=%d BL=%d",
       LCD_PIN_MOSI,LCD_PIN_CLK,LCD_PIN_CS,LCD_PIN_DC,LCD_PIN_RST,LCD_PIN_BL);
-    // Stay dark during initial power-up; BOX backlight is active-low.
+    // Stay dark during initial power-up; PCB v1.0 GPIO3 drives an NPN low-side transistor: HIGH=on.
     gpio_config_t bl_cfg={
        .pin_bit_mask=1ULL<<LCD_PIN_BL,.mode=GPIO_MODE_OUTPUT,
        .pull_up_en=GPIO_PULLUP_DISABLE,.pull_down_en=GPIO_PULLDOWN_DISABLE,
        .intr_type=GPIO_INTR_DISABLE
     };
     ESP_RETURN_ON_ERROR(gpio_config(&bl_cfg),TAG,"BL GPIO");
-    ESP_RETURN_ON_ERROR(gpio_set_level(LCD_PIN_BL,1),TAG,"BL off");
+    ESP_RETURN_ON_ERROR(gpio_set_level(LCD_PIN_BL,0),TAG,"BL off");
 
     spi_bus_config_t bus={
         .mosi_io_num=LCD_PIN_MOSI,.miso_io_num=-1,.sclk_io_num=LCD_PIN_CLK,
@@ -149,7 +149,7 @@ esp_err_t spotpear_lcd_show_home(void) {
     center_text("USB READY",185,1,white);
     // RGB565 values are byte-swapped in the buffer for MSB-first LCD SPI transfer.
     ESP_RETURN_ON_ERROR(esp_lcd_panel_draw_bitmap(panel,0,0,LCD_W,LCD_H,framebuffer),TAG,"LCD draw");
-    ESP_RETURN_ON_ERROR(gpio_set_level(LCD_PIN_BL,0),TAG,"BL on");
+    ESP_RETURN_ON_ERROR(gpio_set_level(LCD_PIN_BL,1),TAG,"BL on");
     ESP_LOGI(TAG,"LCD_HOME_SHOWN");
     return ESP_OK;
 }
