@@ -31,7 +31,7 @@ export function setupWiringUI({onDisplayChange}){
   }
  }
  function showTab(name){
-  for(const [tab,id] of [["flash","flashTab"],["wiring","wiringTab"],["serial","serialTab"]]){
+  for(const [tab,id] of [["flash","flashTab"],["wiring","wiringTab"],["serial","serialTab"],["spotpear","spotpearTab"]]){
    document.getElementById(id).hidden=tab!==name;
   }
   for(const btn of tabs){const selected=btn.dataset.tab===name;btn.classList.toggle("active",selected);btn.setAttribute("aria-selected",String(selected));}
