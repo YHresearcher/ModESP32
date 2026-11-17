@@ -83,7 +83,7 @@ async function main() {
         } else done(new Error("Incomplete roundtrip; hello="+gotHello+", STT="+gotStt+", TTS="+gotTts+", binary="+gotAudio));
       }
       if(obj.type==="alert") {
-        console.log("Cloud alert: "+(obj.message||"unknown").slice(0,150));
+        done(new Error("Worker alert: "+(obj.message||"unknown").slice(0,150)));
       }
     });
     ws.on("close",(code)=>{if(!gotStop)done(new Error("WebSocket closed before TTS complete: "+code))});
