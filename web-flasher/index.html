@@ -65,7 +65,7 @@
 <section id="spotpearTab" class="tabpanel panel" hidden>
   <div class="step">SPOTPEAR · EXPERIMENTAL</div>
   <h2>Spotpear ESP32-S3 BOX 1.28” — Wireless Lab</h2>
-  <p><strong>Firmware riêng dành cho Spotpear, không dành cho ESP32-S3 + LCD 2.8 inch.</strong> Chức năng Wi-Fi/BLE hiện vận hành qua USB Serial; driver màn hình GC9A01, nút, micro, loa và thẻ SD <strong>chưa được tích hợp</strong>.</p>
+  <p><strong>Firmware riêng dành cho Spotpear, không dành cho ESP32-S3 + LCD 2.8 inch.</strong> Firmware có driver GC9A01 và LCD Diagnostic V0.2 (màu đỏ, xanh lá, xanh dương, trắng). Wi-Fi/BLE vận hành qua USB Serial; nút, micro, loa và thẻ SD <strong>chưa được tích hợp</strong>. Màn hình vẫn chưa được xác nhận tương thích trên bo thực tế.</p>
   <div class="notice"><strong>Lưu ý:</strong> Build thành công không chứng minh tương thích phần cứng. Firmware sẽ thay thế phần mềm gốc và màn hình có thể tối đen. Không nạp nếu chưa xác nhận ESP32-S3 N16R8 đúng phiên bản PCB và đã sao lưu flash gốc.</div>
   <div class="steps">
     <section class="panel">
@@ -79,13 +79,13 @@
       <h3>02 · Xác nhận trước khi flash</h3>
       <label class="checkline"><input type="checkbox" id="spotpearBoardConfirm"> Tôi đã xác nhận chip ESP32-S3 N16R8 và phiên bản bo Spotpear BOX của mình.</label>
       <label class="checkline"><input type="checkbox" id="spotpearBackupConfirm"> Tôi đã sao lưu flash gốc và biết cách khôi phục bằng USB.</label>
-      <label class="checkline"><input type="checkbox" id="spotpearExperimentalConfirm"> Tôi hiểu đây là firmware USB-only thử nghiệm và màn hình tròn có thể không hiển thị.</label>
+      <label class="checkline"><input type="checkbox" id="spotpearExperimentalConfirm"> Tôi hiểu đây là firmware LCD Diagnostic V0.2 thử nghiệm, màn hình tròn vẫn có thể không hiển thị.</label>
       <esp-web-install-button id="spotpearInstaller" class="installer" manifest="about:blank">
         <button id="spotpearFlash" slot="activate" class="primary" disabled>Kết nối &amp; Flash Spotpear (Experimental)</button>
         <span slot="unsupported" class="warning">Chrome hoặc Edge desktop cần Web Serial.</span>
         <span slot="not-allowed" class="warning">Web Serial cần HTTPS và quyền truy cập USB.</span>
       </esp-web-install-button>
-      <p class="small">Sau khi flash, mở tab Serial &amp; Chẩn đoán ở 115200 baud để xem log. Lệnh USB: <code>wifi</code>, <code>ble</code>, <code>ap</code>, <code>advertise</code>, <code>stop</code>.</p>
+      <p class="small">Sau khi flash, mở tab Serial &amp; Chẩn đoán ở 115200 baud để xem log. Gõ <code>lcd</code> để chạy lại kiểm thử 4 màu. Lệnh USB: <code>wifi</code>, <code>ble</code>, <code>ap</code>, <code>advertise</code>, <code>stop</code>.</p>
     </section>
   </div>
 </section>
