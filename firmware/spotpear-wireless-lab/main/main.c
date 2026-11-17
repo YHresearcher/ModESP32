@@ -15,6 +15,9 @@
 #include "host/ble_hs_adv.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
+#include "driver/usb_serial_jtag.h"
+#include "driver/usb_serial_jtag_vfs.h"
+#include "lcd.h"
 
 static const char *TAG = "SPOTPEAR_LAB";
 static uint8_t own_addr_type;
@@ -126,6 +129,9 @@ static void ble_test_adv(void) {
     else ESP_LOGE(TAG, "Start BLE advertisement: %d", rc);
 }
 void app_main(void) {
+    esp_err_t lcd_err = spotpear_lcd_init();
+    if (lcd_err == ESP_OK) lcd_err = spotpear_lcd_show_home();
+    if (lcd_err != ESP_OK) ESP_LOGE(TAG, "LCD init failed: %s", esp_err_to_name(lcd_err));
     esp_err_t e = nvs_flash_init();
     if (e == ESP_ERR_NVS_NO_FREE_PAGES || e == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -147,14 +153,39 @@ void app_main(void) {
         nimble_port_freertos_init(nimble_task);
     } else ESP_LOGE(TAG, "NimBLE init: %d", rc);
     ESP_LOGI(TAG, "Spotpear Wireless Lab experimental USB console");
+    // USB Serial/JTAG's default VFS stdin read is non-blocking; fgets() can
+    // repeatedly return EOF and leave the stream in an error/EOF state.
+    // Install the interrupt-driven USB driver and read raw bytes instead.
+    usb_serial_jtag_driver_config_t usb_cfg = {
+        .rx_buffer_size = 512,
+        .tx_buffer_size = 512,
+    };
+    ESP_ERROR_CHECK(usb_serial_jtag_driver_install(&usb_cfg));
+    usb_serial_jtag_vfs_use_driver();
+    ESP_LOGI(TAG, "USB command RX ready (type help + Enter)");
     ESP_LOGI(TAG, "Commands: wifi | ble | ap | advertise | stop | help");
-    char cmd[32];
+    char cmd[32] = {0};
+    size_t used = 0;
     while (true) {
-        if (!fgets(cmd, sizeof(cmd), stdin)) {
-            vTaskDelay(pdMS_TO_TICKS(100));
+        char incoming;
+        int count = usb_serial_jtag_read_bytes(&incoming, 1, pdMS_TO_TICKS(250));
+        if (count <= 0) continue;
+        if (incoming == '\r' || incoming == '\n') {
+            if (used == 0) continue; // CRLF's second terminator
+            cmd[used] = '\0';
+            ESP_LOGI(TAG, "Command received: %s", cmd);
+            used = 0;
+        } else if (incoming == '\b' || incoming == 127) {
+            if (used > 0) --used;
             continue;
-        }
-        cmd[strcspn(cmd, "\r\n")] = 0;
+        } else if (incoming >= 32 && incoming <= 126) {
+            if (used < sizeof(cmd) - 1) cmd[used++] = incoming;
+            else {
+                used = 0;
+                ESP_LOGW(TAG, "Command too long; cleared");
+            }
+            continue;
+        } else continue;
         if (strcmp(cmd, "wifi") == 0) wifi_scan();
         else if (strcmp(cmd, "ble") == 0) ble_scan();
         else if (strcmp(cmd, "ap") == 0) wifi_test_ap();
