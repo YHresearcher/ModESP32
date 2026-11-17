@@ -17,6 +17,7 @@
 #include "nimble/nimble_port_freertos.h"
 #include "driver/usb_serial_jtag.h"
 #include "driver/usb_serial_jtag_vfs.h"
+#include "lcd.h"
 
 static const char *TAG = "SPOTPEAR_LAB";
 static uint8_t own_addr_type;
@@ -128,6 +129,9 @@ static void ble_test_adv(void) {
     else ESP_LOGE(TAG, "Start BLE advertisement: %d", rc);
 }
 void app_main(void) {
+    esp_err_t lcd_err = spotpear_lcd_init();
+    if (lcd_err == ESP_OK) lcd_err = spotpear_lcd_show_home();
+    if (lcd_err != ESP_OK) ESP_LOGE(TAG, "LCD init failed: %s", esp_err_to_name(lcd_err));
     esp_err_t e = nvs_flash_init();
     if (e == ESP_ERR_NVS_NO_FREE_PAGES || e == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
