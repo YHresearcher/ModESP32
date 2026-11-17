@@ -1,3 +1,5 @@
+> **Repository of record:** [YHresearcher/ModESP32](https://github.com/YHresearcher/ModESP32). The old GitHub repository `YHresearcher/agentesp32` is historical only. The Cloudflare Worker and website named `agentesp32` remain active and are deployed using this repository's `.github/workflows/agentesp32-web-flasher-deploy.yml`. See [consolidation map](../docs/REPOSITORY-CONSOLIDATION.md).
+
 # ModESP32 Firmware Center · One-Click Development Flash
 
 Production URL: https://agentesp32.hlthanh1992.workers.dev
