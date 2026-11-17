@@ -31,9 +31,10 @@
       <label for="firmwareProfile">Chế độ firmware cho ST7789V</label>
       <select id="firmwareProfile">
         <option value="normal">XiaoZhi thường — bản màn hình đã hoạt động</option>
-        <option value="touch">Chibi AI v1.0 RC — ST7789V + XPT2046 (Development)</option>
+        <option value="touch">Touch + Chibi Face (Xiaozhi backend) — Development</option>
+        <option value="chibi-cloud" disabled>Chibi Cloud + Touch (đang kiểm thử, chưa có bản flash công khai)</option>
       </select>
-      <p class="small" id="touchProfileNotice">Chibi AI v1.0 RC: giao diện Chibi, nút TALK/VOL/SET, cảm ứng XPT2046. Development chưa được nghiệm thu trên phần cứng; giữ bản Touch cũ để khôi phục.</p>
+      <p class="small" id="touchProfileNotice">Bản Touch hiện tại chỉ thay giao diện, vẫn kết nối Xiaozhi; không thể đổi persona hay TTS từ website. Chibi Cloud riêng đang trong giai đoạn kiểm thử, cần token riêng trên thiết bị.</p>
       <label for="firmwareSource">Nguồn firmware</label>
       <select id="firmwareSource">
         <option value="auto">Development – bản mới nhất từ GitHub</option>
