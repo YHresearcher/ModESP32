@@ -68,3 +68,13 @@ In Manual mode, get `merged-binary.bin` and `SHA256SUMS` from the **same success
 - `.github/workflows/build.yml`: broad upstream board CI; skips web-only commits.
 
 <!-- Cloudflare Workers Builds: trigger a fresh main-branch deployment after configuring root directory web-flasher. -->
+
+## Spotpear Wireless Lab (experimental, separate target)
+
+Select **Spotpear 1.28”** in the website tab bar. This is a separate ESP32-S3 N16R8 build, `spotpear-box128-wireless-lab`, and must never be flashed using the older 2.8-inch ST7789V/ILI9341 device profile.
+
+The `.github/workflows/spotpear-wireless-lab.yml` action builds from `firmware/spotpear-wireless-lab/`, merges the ESP-IDF flash offsets to `merged-binary.bin`, checks magic and size, and produces `SHA256SUMS`. After merging to `main`, it can publish the immutable `spotpear-wireless-dev-<sha12>` prerelease and a manifest at `web-flasher/latest-spotpear.json`. The Worker exposes the same-origin `/api/firmware/latest?display=spotpear` and strict tag-specific `/api/firmware/binary?tag=...` endpoint. Browser validates size, ESP image header, and SHA-256 before offering the ESP Web Tools installer.
+
+**This is a USB-serial-only experimental firmware.** It supports basic Wi-Fi/BLE scans and own-device radio test modes; GC9A01 LCD, buttons, audio, and microSD are not yet included. Do not flash before backup and hardware confirmation. CI compile and merged image validation do not certify board compatibility.
+
+Spotpear prereleases and metadata must never replace existing XiaoZhi `latest-development.json`, `latest-touch-development.json`, `latest-ili9341.json` or their releases. Cloudflare deployments require publishing `web-flasher/` to the existing `agentesp32` Worker as configured; GitHub files alone do not update the live site unless automatic deployment is correctly configured.
