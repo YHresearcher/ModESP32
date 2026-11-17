@@ -71,8 +71,8 @@ async function gemini(env, parts, mode = "chat") {
   if (!env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is missing");
   const primary = mode === "asr"
     ? (env.GEMINI_ASR_MODEL || "gemini-3.8-flash")
-    : (env.GEMINI_MODEL || "gemini-3.8-flash");
-  const fallback = mode === "chat" ? (env.GEMINI_CHAT_FALLBACK || "gemini-3.5-flash-lite") : null;
+    : (env.GEMINI_MODEL || "gemini-3.5-flash-lite");
+  const fallback = mode === "chat" ? (env.GEMINI_CHAT_FALLBACK || "gemini-3.8-flash") : null;
   const models = [primary, ...(fallback && fallback !== primary ? [fallback] : [])];
   let lastCode = 503;
   for (const model of models) {
