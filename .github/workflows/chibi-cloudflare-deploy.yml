@@ -73,7 +73,7 @@ jobs:
           node -e 'process.stdout.write(JSON.stringify({GEMINI_API_KEY:process.env.GEMINI_API_KEY,CHIBI_DEVICE_TOKEN:process.env.CHIBI_DEVICE_TOKEN}))' \
             | npx wrangler secret bulk
 
-      - name: Smoke test Flash Lite chat and Gemini Vietnamese voice
+      - name: Smoke test Flash Lite ASR and conversational voice
         working-directory: cloudflare/chibi
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
