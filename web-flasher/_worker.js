@@ -4,7 +4,8 @@ const REPO = "YHresearcher/ModESP32";
 const PROFILES = Object.freeze({
   st7789v: {board:"mod-esp32s3-st7789v-28", tag:/^mod-esp32s3-dev-[a-f0-9]{12}$/, file:"latest-development.json"},
   "st7789v-touch": {board:"mod-esp32s3-st7789v-touch-28", tag:/^mod-esp32s3-touch-dev-[a-f0-9]{12}$/, file:"latest-touch-development.json"},
-  ili9341: {board:"mod-esp32s3-ili9341-28", tag:/^mod-esp32s3-ili9341-dev-[a-f0-9]{12}$/, file:"latest-ili9341.json"}
+  ili9341: {board:"mod-esp32s3-ili9341-28", tag:/^mod-esp32s3-ili9341-dev-[a-f0-9]{12}$/, file:"latest-ili9341.json"},
+  spotpear: {board:"spotpear-box128-wireless-lab", tag:/^spotpear-wireless-dev-[a-f0-9]{12}$/, file:"latest-spotpear.json", minBytes:65536}
 });
 const RAW_BASE = "https://raw.githubusercontent.com/" + REPO + "/main/web-flasher/";
 const MAX_IMAGE_BYTES = 16 * 1024 * 1024;
@@ -22,7 +23,7 @@ function valid(m,profile) {
     profile.tag.test(m.tag) && /^[a-f0-9]{40}$/.test(m.sourceSha) &&
     m.sourceSha.startsWith(m.tag.slice(-12)) &&
     /^[a-f0-9]{64}$/.test(m.sha256) &&
-    Number.isSafeInteger(m.size) && m.size >= 1048576 && m.size <= MAX_IMAGE_BYTES;
+    Number.isSafeInteger(m.size) && m.size >= (profile.minBytes || 1048576) && m.size <= MAX_IMAGE_BYTES;
 }
 function releaseBinary(tag) {
   return "https://github.com/" + REPO + "/releases/download/" + tag + "/merged-binary.bin";
