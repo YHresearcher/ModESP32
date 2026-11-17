@@ -30,12 +30,34 @@ function releaseBinary(tag) {
 }
 async function getManifest(fetcher, assets, request, profile) {
   try {
-    const remote = await fetcher(RAW_BASE + profile.file + "?cache_bust=" + Math.floor(Date.now() / 30000), {headers:{"User-Agent":"ModESP32-Firmware-Center","Cache-Control":"no-cache"},redirect:"follow"});
-    if (remote.ok) {
-      const m = await remote.json();
-      if(valid(m,profile))return m;
+    if (profile.file === "latest-spotpear.json") {
+      // GitHub raw CDN may serve a stale "main" file even with cache-busting
+      // query parameters. Use the GitHub Contents API for Spotpear metadata.
+      const api = "https://api.github.com/repos/" + REPO +
+        "/contents/web-flasher/" + profile.file + "?ref=main";
+      const response = await fetcher(api, {headers:{
+        "User-Agent":"ModESP32-Firmware-Center",
+        "Accept":"application/vnd.github+json",
+        "Cache-Control":"no-cache"
+      },redirect:"follow"});
+      if (response.ok) {
+        const item = await response.json();
+        if (item.encoding === "base64" && typeof item.content === "string" && item.size < 8192) {
+          const bytes = Uint8Array.from(atob(item.content.replace(/\\s/g,"")), c => c.charCodeAt(0));
+          const m = JSON.parse(new TextDecoder().decode(bytes));
+          if (valid(m,profile)) return m;
+        }
+      }
+    } else {
+      const remote = await fetcher(RAW_BASE + profile.file + "?cache_bust=" + Math.floor(Date.now() / 30000), {
+        headers:{"User-Agent":"ModESP32-Firmware-Center","Cache-Control":"no-cache"},redirect:"follow"
+      });
+      if (remote.ok) {
+        const m = await remote.json();
+        if(valid(m,profile))return m;
+      }
     }
-  } catch { /* Use local pinned fallback if GitHub raw is unavailable. */ }
+  } catch { /* Use local pinned fallback if upstream is unavailable. */ }
   if(assets?.fetch){
     const local=new URL("/"+profile.file,request.url);
     const res=await assets.fetch(new Request(local.toString()));
